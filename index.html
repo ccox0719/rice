@@ -169,41 +169,64 @@ function buildPyramid(){
   };
 }
 
+/* ========= Safe draw helpers (fixes the crash) ========= */
+function reshuffleIfAllowed(){
+  if(S.deck.length===0 && S.reshufflesLeft>0){
+    log("🔄 Deck empty — reshuffling discard.");
+    S.deck = shuffle(S.discard);
+    S.discard = [];
+    S.reshufflesLeft--;
+    updateBars();
+  }
+}
+function drawOneOrNull(){
+  if(S.deck.length===0) reshuffleIfAllowed();
+  if(S.deck.length===0){
+    // out of cards after reshuffle
+    endGame(false, "Deck exhausted a second time. The bomb explodes!");
+    return null;
+  }
+  return S.deck.pop();
+}
+function drawTo(seat, n=1){
+  const P = S.players[seat];
+  for(let i=0;i<n;i++){
+    const c = drawOneOrNull();
+    if(!c) return; // game ended
+    P.hand.push(c);
+  }
+}
+
+/* ========= Dealing & Setup ========= */
 function dealPyramid(p){
   // place cards face-down; reveal bottom row
-  for(let i=0;i<3;i++){ p.pyramid.rows[0].push({card:S.deck.pop(), hidden:false, hazard:false}); }
-  for(let i=0;i<2;i++){ p.pyramid.rows[1].push({card:S.deck.pop(), hidden:true, hazard:false}); }
-  p.pyramid.rows[2].push({card:S.deck.pop(), hidden:true, hazard:false});
-  p.pyramid.core = {card:S.deck.pop(), hidden:true, hazard:false, core:true};
+  for(let i=0;i<3;i++){ const c = drawOneOrNull(); if(!c) return; p.pyramid.rows[0].push({card:c, hidden:false, hazard:false}); }
+  for(let i=0;i<2;i++){ const c = drawOneOrNull(); if(!c) return; p.pyramid.rows[1].push({card:c, hidden:true, hazard:false}); }
+  { const c = drawOneOrNull(); if(!c) return; p.pyramid.rows[2].push({card:c, hidden:true, hazard:false}); }
+  { const c = drawOneOrNull(); if(!c) return; p.pyramid.core = {card:c, hidden:true, hazard:false, core:true}; }
 }
 function exposedSlots(p){
   // return array of {row, col, cell} that are currently exposed (no card above)
   const out=[];
   const R = p.pyramid.rows;
-  // bottom row (0) always considered exposed if present
   for(let c=0;c<R[0].length;c++){ if(R[0][c]) out.push({row:0,col:c,cell:R[0][c]}); }
-  // row1 exposed if the cell itself exists AND the two below cells are cleared/empty
   for(let c=0;c<R[1].length;c++){
     const below1 = R[0][c];
     const below2 = R[0][c+1];
     if(R[1][c] && !below1 && !below2){ out.push({row:1,col:c,cell:R[1][c]}); }
   }
-  // row2 exposed if row1 is cleared
-  if(R[2][0] && R[1].every(x=>!x)){ out.push({row:2,col:0,cell:R[2][0]}); }
-  // core exposed if top is cleared
-  if(p.pyramid.core && !R[2][0]) out.push({row:3,col:0,cell:p.pyramid.core});
+  if(R[1].every(x=>!x) && R[2][0]) out.push({row:2,col:0,cell:R[2][0]});
+  if(!R[2][0] && p.pyramid.core) out.push({row:3,col:0,cell:p.pyramid.core});
   return out;
 }
 function clearCell(p, row, col){
   if(row===3){
-    // remove core
     p.pyramid.core = null;
   } else {
     p.pyramid.rows[row][col] = null;
   }
-  // flip any now-exposed above
+  // Flip exposure upward
   if(row===0){
-    // if two below empty, flip row1
     for(let c=0;c<2;c++){
       const belowL = p.pyramid.rows[0][c];
       const belowR = p.pyramid.rows[0][c+1];
@@ -211,48 +234,23 @@ function clearCell(p, row, col){
         p.pyramid.rows[1][c].hidden=false;
       }
     }
-    // if row1 cleared, flip row2
     if(p.pyramid.rows[1].every(x=>!x) && p.pyramid.rows[2][0] && p.pyramid.rows[2][0].hidden){
       p.pyramid.rows[2][0].hidden=false;
     }
-    // if row2 cleared, flip core
     if(!p.pyramid.rows[2][0] && p.pyramid.core && p.pyramid.core.hidden){
       p.pyramid.core.hidden=false;
     }
   } else if(row===1){
-    // if row1 cleared, flip row2
     if(p.pyramid.rows[1].every(x=>!x) && p.pyramid.rows[2][0] && p.pyramid.rows[2][0].hidden){
       p.pyramid.rows[2][0].hidden=false;
     }
-    // if row2 cleared, flip core
     if(!p.pyramid.rows[2][0] && p.pyramid.core && p.pyramid.core.hidden){
       p.pyramid.core.hidden=false;
     }
   } else if(row===2){
-    // if row2 cleared, flip core
     if(p.pyramid.core && p.pyramid.core.hidden){
       p.pyramid.core.hidden=false;
     }
-  }
-}
-
-function drawTo(seat, n=1){
-  const P = S.players[seat];
-  for(let i=0;i<n;i++){
-    if(S.deck.length===0){
-      if(S.reshufflesLeft>0){
-        log("🔄 Deck empty — reshuffling discard.");
-        S.deck = shuffle(S.discard);
-        S.discard = [];
-        S.reshufflesLeft--;
-        updateBars();
-      }else{
-        endGame(false, "Deck exhausted a second time. The bomb explodes!");
-        return;
-      }
-    }
-    if(S.deck.length===0) return;
-    P.hand.push(S.deck.pop());
   }
 }
 
@@ -268,14 +266,13 @@ function startGame(){
   for(let i=0;i<n;i++){
     S.players.push(newPlayer(i, i===h));
   }
-  // deal pyramids
   for(const p of S.players){ dealPyramid(p); }
-  // deal hands (4 each)
   for(let i=0;i<n;i++){ drawTo(i,4); }
   S.turn = 0;
   S.attempt = [];
   S.contributed.clear();
   S.started = true;
+  gameOver=false;
   renderAll();
   hint("Your goal on your turn: clear your own exposed pyramid card using up to 3 contributions (you + table).");
   runTurnLoopIfBot();
@@ -287,24 +284,18 @@ function startGame(){
 function targetRanks(){
   const P = S.players[S.turn];
   const ex = exposedSlots(P).filter(x=>x.cell && !x.cell.hidden);
-  return ex.map(x => P && x.cell.card ? x.cell.card.r : null).filter(Boolean);
+  // SAFETY: guard against missing card (e.g., if something went wrong)
+  return ex.map(x => x.cell?.card?.r || null).filter(Boolean);
 }
 // Returns {cleared:boolean, clearedCell?}
 function evaluateAttemptAndMaybeClear(){
   const ranks = targetRanks();
-  if(ranks.length===0){ 
-    // might be core exposed & clearable
-  }
-  // Collect the cards actually played (ignore wild placeholders except to allow set)
-  // Ace logic: any Ace + number can shift number by ±1 to match target rank.
-  const played = S.attempt.filter(x=>x.type!=="wild").map(x=>x.card);
+  const played = S.attempt.filter(x=>x.type!=="wild").map(x=>x.card).filter(Boolean);
   const wildCount = S.attempt.filter(x=>x.type==="wild").length;
 
-  // Build candidate values: direct ranks present in attempt plus results using Ace ±1
   const valuesPresent = new Set(played.map(c=>c.r));
-  // apply Ace with any number in attempt
   const hasAce = played.some(c=>c.r==="A");
-  const numbers = played.filter(c=>!isFace(c.r) && c.r!=="A"); // numeric ranks
+  const numbers = played.filter(c=>!isFace(c.r) && c.r!=="A");
   const aceShiftRanks = new Set();
   if(hasAce){
     for(const n of numbers){
@@ -314,63 +305,44 @@ function evaluateAttemptAndMaybeClear(){
       if(up<=13) aceShiftRanks.add(vToRank(up));
     }
   }
-  // wild lets us become any rank
   function canMatchAnyTarget(){
     for(const t of ranks){
       if(valuesPresent.has(t)) return true;
       if(aceShiftRanks.has(t)) return true;
       if(wildCount>0) return true;
     }
-    // also allow clearing core when core is exposed: must match its rank as well
     return false;
   }
-
   if(!canMatchAnyTarget()) return {cleared:false};
 
-  // choose the first target rank that is achievable
   let chosen = null;
   for(const t of ranks){
     if(valuesPresent.has(t) || aceShiftRanks.has(t) || wildCount>0){ chosen = t; break; }
   }
   if(chosen===null) return {cleared:false};
 
-  // Perform the clear on the active player's pyramid (only their side)
   const P = S.players[S.turn];
   const ex = exposedSlots(P).filter(x=>x.cell && !x.cell.hidden);
-  // Preference: clear the highest row first (core if exposed), otherwise any exposed that matches
-  let pick = ex.find(x=>x.cell.card && x.cell.card.r===chosen);
+  let pick = ex.find(x=>x.cell?.card?.r===chosen);
   if(!pick && P.pyramid.core && !P.pyramid.core.hidden && P.pyramid.core.card && P.pyramid.core.card.r===chosen){
     pick = {row:3,col:0,cell:P.pyramid.core};
   }
   if(!pick){
-    // If we only got here via wild, pick any exposed cell (first)
     pick = ex[0] || (P.pyramid.core && !P.pyramid.core.hidden ? {row:3,col:0,cell:P.pyramid.core} : null);
   }
   if(!pick) return {cleared:false};
 
-  // Move used attempt cards to discard, and consume one wild if used
-  // (We don't need to detect exactly which card matched; just consume all attempt cards.)
   for(const a of S.attempt){
-    if(a.type==="hand"){
-      // remove that card from that player's hand (already removed when played)
-    }else if(a.type==="stage"){
-      // already popped from staging
-    }else if(a.type==="wild"){
-      // already decremented on spend
-    }
     if(a.card) S.discard.push(a.card);
   }
 
   const clearedCard = pick.cell.card;
   clearCell(P, pick.row, pick.col);
 
-  // If the cleared card is a face, award a wild to the active player
-  if(isFace(clearedCard.r)){
+  if(clearedCard && isFace(clearedCard.r)){
     P.wilds = (P.wilds||0)+1;
     log(`⭐ ${P.name} cleared a face (${label(clearedCard)}) and gains a single-use Wild.`);
   }
-
-  // After a successful clear: everyone who contributed draws 1; attempt resets; turn passes.
   return {cleared:true, clearedCell: pick};
 }
 
@@ -383,38 +355,35 @@ function vToRank(v){
 }
 
 function afterAttemptResolution(result){
-  // Contributors draw 1 each; refill to 4 max hand size
   const seats = Array.from(S.contributed.values());
   for(const seat of seats){
     const P = S.players[seat];
-    if(P) drawTo(seat,1);
-    while(P && P.hand.length<4) drawTo(seat,1);
+    if(P){ drawTo(seat,1); while(P.hand.length<4) drawTo(seat,1); }
   }
   S.attempt = [];
   S.contributed.clear();
 
-  // Check win/lose
   if(checkWin()){
     endGame(true, `${S.players[S.turn].name} defused their core! The table wins!`);
     return;
   }
 
-  // Pass turn to next seat
   S.turn = (S.turn+1)%S.seatCount;
   renderAll();
   runTurnLoopIfBot();
 }
 
 function checkWin(){
-  // Win when active player's pyramid is fully cleared including core
   const P = S.players[S.turn];
-  const done = P.pyramid.rows[0].every(x=>!x) && P.pyramid.rows[1].every(x=>!x) && !P.pyramid.rows[2][0] && !P.pyramid.core;
+  const done = P.pyramid.rows[0].every(x=>!x) &&
+               P.pyramid.rows[1].every(x=>!x) &&
+               !P.pyramid.rows[2][0] &&
+               !P.pyramid.core;
   return done;
 }
 
 function addHazardToActive(){
   const P = S.players[S.turn];
-  // Hazard: top of deck placed face-down at lowest available slot
   const slotOrder = [
     ...P.pyramid.rows[0].map((_,i)=>({row:0,col:i})),
     ...P.pyramid.rows[1].map((_,i)=>({row:1,col:i})),
@@ -422,21 +391,29 @@ function addHazardToActive(){
     {row:3,col:0}
   ];
   for(const pos of slotOrder){
+    const drawn = drawOneOrNull();
+    if(!drawn) return; // game ended inside draw
     if(pos.row===3){
       if(!P.pyramid.core){
-        P.pyramid.core = {card: S.deck.pop(), hidden:true, hazard:true, core:true};
+        P.pyramid.core = {card: drawn, hidden:true, hazard:true, core:true};
         log(`⚠️ Hazard added to ${P.name}'s core.`);
         return;
+      } else {
+        // core already exists; try next slot
+        S.discard.push(drawn); // put back somewhere reasonable; discard it
+        continue;
       }
     }else{
       if(P.pyramid.rows[pos.row][pos.col]===null){
-        P.pyramid.rows[pos.row][pos.col] = {card:S.deck.pop(), hidden:true, hazard:true};
+        P.pyramid.rows[pos.row][pos.col] = {card: drawn, hidden:true, hazard:true};
         log(`⚠️ Hazard added to ${P.name}'s pyramid (row ${pos.row+1}).`);
         return;
+      } else {
+        S.discard.push(drawn);
+        continue;
       }
     }
   }
-  // if we couldn't place (pyramid overflow), lose
   endGame(false, `${P.name}'s pyramid overflowed with hazards. The bomb explodes!`);
 }
 
@@ -451,8 +428,6 @@ function selectHandCard(idx){
 }
 
 function playFromHandAsContribution(){
-  const me = S.players[S.turn];
-  // Only allow if it's the human's contribution turn (either active, or in chain when human seat comes up)
   if(!canContribute(S.humanSeat)) return;
   const H = S.players[S.humanSeat];
   if(selectedHandIndex==null || !H.hand[selectedHandIndex]) return;
@@ -473,7 +448,6 @@ function playStagingTopContribution(){
   if(!top) return;
   if(S.attempt.length>=3) return;
 
-  // pop from staging
   const card = H.staging.pop();
   S.attempt.push({type:"stage", seat:S.humanSeat, card});
   S.contributed.add(S.humanSeat);
@@ -482,13 +456,11 @@ function playStagingTopContribution(){
 }
 
 function stageSelected(){
-  // Active player may choose to play to staging instead of attempt (counts as their 1 play)
   if(S.turn!==S.humanSeat) return;
   const H = S.players[S.humanSeat];
   if(selectedHandIndex==null || !H.hand[selectedHandIndex]) return;
 
   const card = H.hand[selectedHandIndex];
-  // enforce staging alternation: must alternate color and be ±1 from last staged
   const top = H.staging[H.staging.length-1];
   if(top && !(alternateColor(card, top) && adjacentBy1(card, top))){
     hint("Staging must alternate color and be ±1 by rank from the previous staged card.");
@@ -499,7 +471,6 @@ function stageSelected(){
   H.hand.splice(selectedHandIndex,1);
   selectedHandIndex=null;
   log(`📎 ${H.name} stages ${label(card)}.`);
-  // counts as active player's contribution to attempt
   S.attempt.push({type:"stage", seat:S.humanSeat, card});
   S.contributed.add(S.humanSeat);
   postContributionStep();
@@ -508,7 +479,7 @@ function stageSelected(){
 function spendWild(){
   if(!canContribute(S.humanSeat)) return;
   const H = S.players[S.humanSeat];
-  if(H.wilds<=0) return;
+  if((H.wilds||0)<=0) return;
   if(S.attempt.length>=3) return;
   H.wilds--;
   S.attempt.push({type:"wild", seat:S.humanSeat});
@@ -527,7 +498,6 @@ function skipContribution(){
 function postContributionStep(){
   renderAll();
 
-  // If attempt has 3 cards or everyone had a chance (with <=3 players) → resolve
   if(S.attempt.length>=3 || S.contributed.size>=Math.min(3, S.seatCount)){
     const res = evaluateAttemptAndMaybeClear();
     if(res.cleared){
@@ -541,7 +511,6 @@ function postContributionStep(){
       return;
     }
   } else {
-    // Let next eligible contributor (bot or human) act
     runContributors();
   }
 }
@@ -549,16 +518,12 @@ function postContributionStep(){
 /* ========= Contribution Flow ========= */
 
 function canContribute(seat){
-  // Contributors this attempt are: active, then next seat, then next seat
   const order = contributionOrder();
-  const nextSeat = order[S.attempt.length] ?? order[S.contributed.size] ?? null;
-  // We ensure human can only click when it's their slot
   const idx = S.contributed.size;
   return order[idx]===seat && !S.contributed.has(seat) && S.attempt.length<3;
 }
 
 function contributionOrder(){
-  // up to 3 seats: active, next, next
   const arr=[S.turn];
   if(S.seatCount>1) arr.push((S.turn+1)%S.seatCount);
   if(S.seatCount>2) arr.push((S.turn+2)%S.seatCount);
@@ -567,12 +532,10 @@ function contributionOrder(){
 
 function runTurnLoopIfBot(){
   if(!S.started) return;
-  // If active seat is a bot, it must make the first contribution automatically (play or stage or skip)
   const active = S.players[S.turn];
   if(active && !active.isHuman){
-    runContributors(); // bot will act in its slot(s)
+    runContributors();
   } else {
-    // Human’s turn; enable buttons for human when it is their contribution moment
     renderAll();
   }
 }
@@ -586,22 +549,18 @@ function runContributors(){
   if(!P) return;
 
   if(P.isHuman){
-    // Wait for human action; buttons are enabled appropriately by render
     renderAll();
     return;
   }
-
-  // Bot logic:
-  setTimeout(()=>botContribute(P), 300);
+  setTimeout(()=>botContribute(P), 250);
 }
 
 function botContribute(P){
   if(S.attempt.length>=3 || S.contributed.has(P.seat)) return;
 
-  const active = S.players[S.turn];
   const targets = targetRanks();
 
-  // 1) If has direct match in hand to any target rank, play it
+  // 1) Hand match
   const matchIdx = P.hand.findIndex(c => targets.includes(c.r));
   if(matchIdx>-1){
     const c = P.hand.splice(matchIdx,1)[0];
@@ -612,7 +571,7 @@ function botContribute(P){
     return;
   }
 
-  // 2) If staging top matches, use it
+  // 2) Staging top match
   const top = P.staging[P.staging.length-1];
   if(top && targets.includes(top.r)){
     const c = P.staging.pop();
@@ -623,7 +582,7 @@ function botContribute(P){
     return;
   }
 
-  // 3) If has wilds, spend one to match
+  // 3) Wild
   if(P.wilds>0){
     P.wilds--;
     S.attempt.push({type:"wild", seat:P.seat});
@@ -633,8 +592,7 @@ function botContribute(P){
     return;
   }
 
-  // 4) Help set up Ace logic (play an Ace if a near-number exists in attempt or vice-versa)
-  // If someone already played a number, bot can play an Ace (or play a number near target if Ace exists)
+  // 4) Ace synergy
   const someonePlayedNumber = S.attempt.some(a=>a.card && !isFace(a.card.r) && a.card.r!=="A");
   const hasAce = P.hand.findIndex(c=>c.r==="A");
   if(hasAce>-1 && someonePlayedNumber){
@@ -645,8 +603,6 @@ function botContribute(P){
     postContributionStep();
     return;
   }
-
-  // 5) Try playing a near-number if an Ace already exists in attempt to enable ±1
   const aceInAttempt = S.attempt.some(a=>a.card && a.card.r==="A");
   if(aceInAttempt){
     const nearIdx = P.hand.findIndex(c=>{
@@ -663,9 +619,8 @@ function botContribute(P){
     }
   }
 
-  // 6) Otherwise, consider staging a helpful card (only if bot is active player)
+  // 5) If active bot, stage something legal (alternation rule)
   if(P.seat===S.turn){
-    // Pick a card that can extend staging (alternating color ±1)
     const stTop = P.staging[P.staging.length-1];
     const pick = P.hand.findIndex(c => !stTop || (alternateColor(c, stTop) && adjacentBy1(c, stTop)));
     if(pick>-1){
@@ -679,7 +634,7 @@ function botContribute(P){
     }
   }
 
-  // 7) Skip
+  // 6) Skip
   S.contributed.add(P.seat);
   log(`🤖 ${P.name} skips.`);
   postContributionStep();
@@ -771,7 +726,7 @@ function renderPyramid(p){
     if(ex.row===3){
       rows[3].firstChild.classList.add("exposed");
     }else{
-      rows[2-ex.row].children[ex.col].classList.add("exposed");
+      rows[2-ex.row].children[ex.col]?.classList.add("exposed");
     }
   }
   return wrap;
@@ -783,6 +738,8 @@ function renderCell(cell, allowEmpty, isCore=false){
   if(cell.hidden){
     return renderHiddenSlot(cell.hazard, isCore);
   }
+  // guard: if card is missing for any reason, render a hazard-look card to avoid crashes
+  if(!cell.card){ return renderHiddenSlot(true, isCore); }
   return renderCard(cell.card, isCore?" core": "");
 }
 
@@ -793,7 +750,6 @@ function renderPlayer(p){
   h.textContent = `${p.name} ${p.isHuman?"(You)":""}`;
   box.appendChild(h);
 
-  // Wilds
   const tags = document.createElement("div");
   tags.className="tags";
   const w = document.createElement("span");
@@ -802,10 +758,8 @@ function renderPlayer(p){
   tags.appendChild(w);
   box.appendChild(tags);
 
-  // Pyramid
   box.appendChild(renderPyramid(p));
 
-  // Staging
   const stLab = document.createElement("div");
   stLab.className="note";
   stLab.textContent = "Staging (top at right; only top can be used):";
@@ -817,7 +771,6 @@ function renderPlayer(p){
   });
   box.appendChild(staging);
 
-  // Hand
   const handLab = document.createElement("div");
   handLab.className="note";
   handLab.textContent = p.isHuman ? "Your hand (select one):" : "Bot hand (hidden)";
@@ -853,7 +806,6 @@ function renderAll(){
     elPlayers.appendChild(renderPlayer(p));
   }
 
-  // Controls availability
   const humanTurnSlot = canContribute(S.humanSeat);
   document.getElementById("playFromHandBtn").disabled = !humanTurnSlot || selectedHandIndex==null;
   document.getElementById("playStagingTopBtn").disabled = !humanTurnSlot || S.players[S.humanSeat].staging.length===0;
@@ -861,7 +813,6 @@ function renderAll(){
   document.getElementById("spendWildBtn").disabled = !humanTurnSlot || (S.players[S.humanSeat].wilds||0)<=0;
   document.getElementById("skipBtn").disabled = !humanTurnSlot;
 
-  // Attempt count etc
   updateBars();
 }
 
