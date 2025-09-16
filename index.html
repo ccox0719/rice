@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bomb Diffusal – Matching Pyramid (Play with Bots) — Fixed</title>
+<title>Bomb Diffusal – Matching Pyramid (Play with Bots) — Final</title>
 <style>
   :root{
     --bg:#0b0f19; --panel:#121826; --ink:#e6ebff; --muted:#9fb1ff;
@@ -67,7 +67,7 @@
 </head>
 <body>
 <header>
-  <h1>Bomb Diffusal – Matching Pyramid (Play with Bots) — Fixed</h1>
+  <h1>Bomb Diffusal – Matching Pyramid (Play with Bots) — Final</h1>
   <div class="bar">
     <span id="turnSpan"></span>
     <span id="deckSpan"></span>
@@ -103,7 +103,7 @@
       <div id="hint">You’re Player 1. When buttons enable, it’s your slot in the 3-card chain.</div>
     </div>
 
-    <!-- Player 1 always visible (no scroll needed) -->
+    <!-- Player 1 always visible -->
     <div class="p1Row"><div class="player me" id="p0Box"></div></div>
     <!-- Three bot seats -->
     <div class="botsRow">
@@ -121,9 +121,10 @@
   </aside>
 </main>
 
-<script>
+<!-- Make this a module to avoid any global redeclaration collisions -->
+<script type="module">
 /* ==================== Timers & Log (Stability Fixes) ==================== */
-let ended = false; // global end flag used everywhere
+let ended = false;
 const TIMEOUTS = new Set();
 function schedule(fn, ms){
   const id = setTimeout(()=>{ TIMEOUTS.delete(id); fn(); }, ms);
@@ -140,10 +141,7 @@ function log(t){
   const d=document.createElement("div");
   d.textContent=t;
   logEl.appendChild(d);
-  // cap DOM nodes to avoid memory bloat
-  while(logEl.children.length > LOG_CAP){
-    logEl.removeChild(logEl.firstChild);
-  }
+  while(logEl.children.length > LOG_CAP) logEl.removeChild(logEl.firstChild);
   logEl.scrollTop = logEl.scrollHeight;
 }
 const hintEl=document.getElementById("hint");
@@ -157,7 +155,7 @@ const RVAL=r=>r==="A"?1:r==="J"?11:r==="Q"?12:r==="K"?13:+r;
 const isFace=r=>r==="J"||r==="Q"||r==="K";
 const oppColor=(a,b)=>CLR[a.s]!==CLR[b.s];
 const plusMinus1=(a,b)=>Math.abs(RVAL(a.r)-RVAL(b.r))===1;
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()* (i+1) | 0; [a[i],a[j]]=[a[j],a[i]]}return a}
 function makeDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({s,r});return shuffle(d)}
 function label(c){return c?c.r+GL[c.s]:"—"}
 function vToRank(v){if(v===1)return"A";if(v===11)return"J";if(v===12)return"Q";if(v===13)return"K";return String(v)}
@@ -216,8 +214,8 @@ function clearCell(p,row,col){
 
 /* ==================== Game Flow ==================== */
 function startGame(){
-  ended = false;                // reset end flag
-  clearAllTimeouts();           // kill any pending timers from prior game
+  ended = false;
+  clearAllTimeouts();
   S.deck=makeDeck(); S.discard.length=0; S.reshufflesLeft=1; S.started=true;
   S.players=[newPlayer(0,true),newPlayer(1,false),newPlayer(2,false),newPlayer(3,false)];
   for(const p of S.players) p.pyramid=buildPyramid(S.deck);
@@ -277,7 +275,6 @@ function evaluateAttempt(){
 
 function afterAttemptResolve(){
   if(!S.started || ended) return;
-  // refill contributors to 4
   for(const seat of S.contributed){
     const P=S.players[seat];
     if(!P) continue;
@@ -362,7 +359,7 @@ function runContributors(){
   const seat=order[idx];
   if(seat==null) return;
   const P=S.players[seat];
-  if(P.seat===0 && !S.autoP1){ renderAll(); return; } // wait for human
+  if(P.seat===0 && !S.autoP1){ renderAll(); return; }
   schedule(()=>botContribute(P), S.speed);
 }
 
@@ -381,7 +378,7 @@ function botContribute(P){
   const top=P.staging[P.staging.length-1];
   if(top && targets.includes(top.r)){ const c=P.staging.pop(); S.attempt.push({seat:P.seat,type:"stage",card:c}); S.contributed.add(P.seat); log(`🤖 ${P.name} uses staging top ${label(c)} (match).`); postContributionStep(); return; }
 
-  // 3) Ace ±1 pairing (add Ace if a number exists; add near-number if Ace exists)
+  // 3) Ace ±1 pairing
   const nums=S.attempt.map(a=>a.card).filter(Boolean).filter(c=>c.r!=="A"&&!isFace(c.r));
   const aceInAttempt=S.attempt.some(a=>a.card && a.card.r==="A");
   const aceIdx=P.hand.findIndex(c=>c.r==="A");
@@ -391,7 +388,7 @@ function botContribute(P){
     if(nearIdx>-1){ const c=P.hand.splice(nearIdx,1)[0]; S.attempt.push({seat:P.seat,type:"hand",card:c}); S.contributed.add(P.seat); log(`🤖 ${P.name} plays ${label(c)} to pair with Ace.`); postContributionStep(); return; }
   }
 
-  // 4) if active, consider staging (simplified rule: opposite color OR ±1)
+  // 4) if active, consider staging (opposite color OR ±1)
   if(P.seat===S.turn){
     const stTop=P.staging[P.staging.length-1];
     const pick=P.hand.findIndex(c=>!stTop || (oppColor(c,stTop) || plusMinus1(c,stTop)));
@@ -488,7 +485,6 @@ function renderPlayerBox(p, box, showHand){
 }
 function chip(t){const s=document.createElement("span"); s.className="chip"; s.textContent=t; return s;}
 function renderAll(){
-  // Safe even when not started
   updateBars();
   if(!S.started){
     ["playHandBtn","useStageBtn","stageBtn","skipBtn"].forEach(id=>document.getElementById(id).disabled=true);
@@ -510,15 +506,14 @@ function renderAll(){
 function endGame(win,msg){
   if(ended) return;
   ended = true;
-  S.started = false;     // stop future turns
-  clearAllTimeouts();    // cancel pending bot steps
+  S.started = false;
+  clearAllTimeouts();
   renderAll();
   log((win?"🏆 ":"💥 ")+msg);
   hint("Game over. Click New Game to play again.");
 }
 
 document.getElementById("newBtn").addEventListener("click",()=>{
-  // full reset to avoid race with pending timeouts
   ended=false; S.started=false; clearAllTimeouts();
   logEl.innerHTML=""; selectedHandIdx=null;
   startGame();
@@ -532,8 +527,7 @@ document.getElementById("stageBtn").addEventListener("click",stageSelected);
 document.getElementById("skipBtn").addEventListener("click",skipHuman);
 
 /* Boot */
-// ✅ just reset the already-declared variable
-selectedHandIdx = null;
+let selectedHandIdx = null;  // declared ONCE in module scope
 renderAll();
 </script>
 </body>
