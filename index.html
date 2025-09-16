@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bomb Diffusal – Matching Pyramid (Play with Bots)</title>
+<title>Bomb Diffusal – Matching Pyramid (Play with Bots) — Fixed</title>
 <style>
   :root{
     --bg:#0b0f19; --panel:#121826; --ink:#e6ebff; --muted:#9fb1ff;
@@ -67,7 +67,7 @@
 </head>
 <body>
 <header>
-  <h1>Bomb Diffusal – Matching Pyramid (Play with Bots)</h1>
+  <h1>Bomb Diffusal – Matching Pyramid (Play with Bots) — Fixed</h1>
   <div class="bar">
     <span id="turnSpan"></span>
     <span id="deckSpan"></span>
@@ -103,7 +103,7 @@
       <div id="hint">You’re Player 1. When buttons enable, it’s your slot in the 3-card chain.</div>
     </div>
 
-    <!-- Player 1 always visible (no scroll) -->
+    <!-- Player 1 always visible (no scroll needed) -->
     <div class="p1Row"><div class="player me" id="p0Box"></div></div>
     <!-- Three bot seats -->
     <div class="botsRow">
@@ -122,6 +122,33 @@
 </main>
 
 <script>
+/* ==================== Timers & Log (Stability Fixes) ==================== */
+let ended = false; // global end flag used everywhere
+const TIMEOUTS = new Set();
+function schedule(fn, ms){
+  const id = setTimeout(()=>{ TIMEOUTS.delete(id); fn(); }, ms);
+  TIMEOUTS.add(id);
+  return id;
+}
+function clearAllTimeouts(){
+  for(const id of TIMEOUTS) clearTimeout(id);
+  TIMEOUTS.clear();
+}
+const LOG_CAP = 300;
+const logEl = document.getElementById("log");
+function log(t){
+  const d=document.createElement("div");
+  d.textContent=t;
+  logEl.appendChild(d);
+  // cap DOM nodes to avoid memory bloat
+  while(logEl.children.length > LOG_CAP){
+    logEl.removeChild(logEl.firstChild);
+  }
+  logEl.scrollTop = logEl.scrollHeight;
+}
+const hintEl=document.getElementById("hint");
+function hint(t){ hintEl.textContent = t||""; }
+
 /* ==================== Helpers & Constants ==================== */
 const SUITS=["C","D","H","S"], GL={C:"♣",D:"♦",H:"♥",S:"♠"};
 const CLR={C:"black",S:"black",D:"red",H:"red"};
@@ -189,13 +216,15 @@ function clearCell(p,row,col){
 
 /* ==================== Game Flow ==================== */
 function startGame(){
+  ended = false;                // reset end flag
+  clearAllTimeouts();           // kill any pending timers from prior game
   S.deck=makeDeck(); S.discard.length=0; S.reshufflesLeft=1; S.started=true;
   S.players=[newPlayer(0,true),newPlayer(1,false),newPlayer(2,false),newPlayer(3,false)];
   for(const p of S.players) p.pyramid=buildPyramid(S.deck);
   for(let i=0;i<S.players.length;i++) drawTo(i,4);
   S.turn=0; S.attempt.length=0; S.contributed.clear();
   S.speed=+document.getElementById("speedSel").value;
-  S.autoP1=false; document.getElementById("autoP1").checked=false; // default: YOU play
+  S.autoP1=document.getElementById("autoP1").checked;
   log("Game started. You are Player 1. Three bots will help on the 3-card attempt chain.");
   renderAll(); runIfBotOrAuto();
 }
@@ -212,7 +241,12 @@ function drawTo(seat,n=1){
     P.hand.push(S.deck.pop());
   }
 }
-function targetRanksForActive(){ return exposedSlots(S.players[S.turn]).map(x=>x.cell.card.r); }
+function targetRanksForActive(){
+  if(!S.started || ended) return [];
+  const P=S.players[S.turn];
+  if(!P) return [];
+  return exposedSlots(P).map(x=>x.cell.card.r);
+}
 
 function evaluateAttempt(){
   const targets=targetRanksForActive(); if(!targets.length) return {cleared:false};
@@ -242,9 +276,11 @@ function evaluateAttempt(){
 }
 
 function afterAttemptResolve(){
+  if(!S.started || ended) return;
   // refill contributors to 4
   for(const seat of S.contributed){
     const P=S.players[seat];
+    if(!P) continue;
     while(P.hand.length<4) drawTo(seat,1);
   }
   S.attempt.length=0; S.contributed.clear();
@@ -262,6 +298,7 @@ function checkTeamWin(){
 }
 function addHazardBottomUp(){
   const P=S.players[S.turn];
+  if(!P) return;
   const order=[
     {row:0,col:0},{row:0,col:1},{row:0,col:2},
     {row:1,col:0},{row:1,col:1},
@@ -297,6 +334,7 @@ function drawHazardCard(){
 function contributionOrder(){ return [S.turn, (S.turn+1)%4, (S.turn+2)%4]; }
 
 function postContributionStep(){
+  if(!S.started || ended) return;
   renderAll();
   const needed = Math.min(3, S.players.length);
   if(S.attempt.length>=3 || S.contributed.size>=needed){
@@ -309,7 +347,7 @@ function postContributionStep(){
 }
 
 function runIfBotOrAuto(){
-  if(!S.started) return;
+  if(!S.started || ended) return;
   if(S.players[S.turn].seat===0 && !S.autoP1){
     hint("Your turn: play from hand, stage (opposite color OR ±1), use staging top, or skip.");
     renderAll();
@@ -318,18 +356,21 @@ function runIfBotOrAuto(){
   }
 }
 function runContributors(){
+  if(!S.started || ended) return;
   const order=contributionOrder();
   const idx=S.contributed.size;
   const seat=order[idx];
   if(seat==null) return;
   const P=S.players[seat];
   if(P.seat===0 && !S.autoP1){ renderAll(); return; } // wait for human
-  setTimeout(()=>botContribute(P), S.speed);
+  schedule(()=>botContribute(P), S.speed);
 }
 
 /* ==================== Bot AI ==================== */
 function botContribute(P){
+  if(!S.started || ended) return;
   if(S.attempt.length>=3 || S.contributed.has(P.seat)) return;
+
   const targets=targetRanksForActive();
 
   // 1) direct hand match
@@ -373,7 +414,7 @@ let selectedHandIdx=null;
 function onSelectHand(idx){ selectedHandIdx=idx; renderAll(); }
 
 function canHumanActNow(){
-  if(!S.started || S.autoP1) return false;
+  if(!S.started || ended || S.autoP1) return false;
   const order=contributionOrder(); const idx=S.contributed.size;
   return order[idx]===0 && !S.contributed.has(0) && S.attempt.length<3;
 }
@@ -391,7 +432,7 @@ function useStagingTop(){
   log(`🗂️ You use staging top ${label(c)}.`); postContributionStep();
 }
 function stageSelected(){
-  if(S.turn!==0 || selectedHandIdx==null) return;
+  if(!S.started || ended || S.turn!==0 || selectedHandIdx==null) return;
   const P=S.players[0]; const card=P.hand[selectedHandIdx];
   const stTop=P.staging[P.staging.length-1];
   if(stTop && !(oppColor(card,stTop) || plusMinus1(card,stTop))){
@@ -405,9 +446,6 @@ function skipHuman(){ if(!canHumanActNow()) return; S.contributed.add(0); log("�
 
 /* ==================== Render ==================== */
 const pBoxes=["p0Box","p1Box","p2Box","p3Box"].map(id=>document.getElementById(id));
-const logEl=document.getElementById("log"); const hintEl=document.getElementById("hint");
-function log(t){const d=document.createElement("div"); d.textContent=t; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;}
-function hint(t){hintEl.textContent=t||"";}
 function updateBars(){
   document.getElementById("turnSpan").textContent=S.started?`Turn: ${S.players[S.turn]?.name}`:"";
   document.getElementById("deckSpan").textContent=S.started?`Deck: ${S.deck.length}`:"";
@@ -449,17 +487,17 @@ function renderPlayerBox(p, box, showHand){
   box.appendChild(hand);
 }
 function chip(t){const s=document.createElement("span"); s.className="chip"; s.textContent=t; return s;}
-
 function renderAll(){
+  // Safe even when not started
+  updateBars();
   if(!S.started){
     ["playHandBtn","useStageBtn","stageBtn","skipBtn"].forEach(id=>document.getElementById(id).disabled=true);
     return;
   }
-  updateBars();
-  renderPlayerBox(S.players[0], pBoxes[0], !S.autoP1);
-  renderPlayerBox(S.players[1], pBoxes[1], false);
-  renderPlayerBox(S.players[2], pBoxes[2], false);
-  renderPlayerBox(S.players[3], pBoxes[3], false);
+  renderPlayerBox(S.players[0], document.getElementById("p0Box"), !S.autoP1);
+  renderPlayerBox(S.players[1], document.getElementById("p1Box"), false);
+  renderPlayerBox(S.players[2], document.getElementById("p2Box"), false);
+  renderPlayerBox(S.players[3], document.getElementById("p3Box"), false);
 
   const myTurnSlot=canHumanActNow();
   document.getElementById("playHandBtn").disabled=!myTurnSlot || selectedHandIdx==null;
@@ -469,14 +507,22 @@ function renderAll(){
 }
 
 /* ==================== End Game & Wire ==================== */
-let ended=false;
-function endGame(win,msg){ if(ended) return; ended=true; renderAll(); log((win?"🏆 ":"💥 ")+msg); hint("Game over. Click New Game to play again."); }
+function endGame(win,msg){
+  if(ended) return;
+  ended = true;
+  S.started = false;     // stop future turns
+  clearAllTimeouts();    // cancel pending bot steps
+  renderAll();
+  log((win?"🏆 ":"💥 ")+msg);
+  hint("Game over. Click New Game to play again.");
+}
 
-const logEl=document.getElementById("log"); const hintEl=document.getElementById("hint");
-function log(t){const d=document.createElement("div"); d.textContent=t; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;}
-function hint(t){hintEl.textContent=t||"";}
-
-document.getElementById("newBtn").addEventListener("click",()=>{ ended=false; logEl.innerHTML=""; selectedHandIdx=null; startGame(); });
+document.getElementById("newBtn").addEventListener("click",()=>{
+  // full reset to avoid race with pending timeouts
+  ended=false; S.started=false; clearAllTimeouts();
+  logEl.innerHTML=""; selectedHandIdx=null;
+  startGame();
+});
 document.getElementById("speedSel").addEventListener("change",e=>{ S.speed=+e.target.value; });
 document.getElementById("autoP1").addEventListener("change",e=>{ S.autoP1=e.target.checked; renderAll(); runIfBotOrAuto(); });
 
@@ -486,6 +532,7 @@ document.getElementById("stageBtn").addEventListener("click",stageSelected);
 document.getElementById("skipBtn").addEventListener("click",skipHuman);
 
 /* Boot */
+let selectedHandIdx=null;
 renderAll();
 </script>
 </body>
