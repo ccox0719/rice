@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bomb Diffusal – Matching Pyramid (Simplified)</title>
+<title>Bomb Diffusal – Matching Pyramid (Play with Bots)</title>
 <style>
   :root{
     --bg:#0b0f19; --panel:#121826; --ink:#e6ebff; --muted:#9fb1ff;
-    --accent:#5aa9ff; --danger:#ff6b6b; --ok:#17c964; --chip:#1b2340;
-    --card:#0f1523; --line:#1c2542;
+    --accent:#5aa9ff; --danger:#ff6b6b; --ok:#17c964; --chip:#1b2340; --line:#1c2542;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
@@ -17,27 +16,28 @@
   .bar{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px}
   main{display:grid;grid-template-columns:1fr 360px;gap:12px;padding:12px}
   @media (max-width: 1000px){ main{grid-template-columns:1fr} aside{order:-1} }
-
   .zone{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
   .controls .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   button{background:var(--chip);color:var(--ink);border:1px solid #28345d;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:600}
   button.primary{background:var(--accent);border:none;color:#001332}
   button:disabled{opacity:.45;cursor:not-allowed}
-  input[type="checkbox"]{transform:translateY(2px)}
   select{background:#0d1424;border:1px solid #28345d;color:var(--ink);border-radius:8px;padding:6px}
+  input[type="checkbox"]{transform:translateY(2px)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{background:#0f1730;border:1px solid #24356a;border-radius:999px;padding:2px 8px;font-size:12px;color:#c0d3ff}
 
-  /* Player layout */
+  /* Table layout */
   .table{display:grid;gap:12px}
   .p1Row{display:grid;grid-template-columns:1fr;gap:12px}
   .botsRow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  @media (max-width: 1100px){ .botsRow{grid-template-columns:1fr; } }
+  @media (max-width: 1100px){ .botsRow{grid-template-columns:1fr} }
 
   .player{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
   .player h2{margin:0 0 8px;font-size:14px;color:var(--muted)}
   .me{outline:2px solid rgba(90,169,255,.35)}
 
-  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .hand,.staging{display:flex;gap:6px;flex-wrap:wrap}
 
   .pyramid{display:grid;gap:6px}
   .py-row{display:flex;gap:6px;justify-content:center}
@@ -45,36 +45,29 @@
   .exposed{outline:2px solid rgba(90,169,255,.5)}
   .coreMark{outline:2px dashed #ffd86b}
   .hazard{background:#2b0f12;border-color:#6a2330}
-  .hand,.staging{display:flex;gap:6px;flex-wrap:wrap}
+
   .card{
     display:inline-flex;align-items:center;justify-content:center;
     min-width:44px;height:58px;border-radius:8px;border:1px solid #31406f;
     background:linear-gradient(180deg,#0f1830,#0d1424);font-weight:700;user-select:none;padding:0 6px
   }
   .mini{min-width:36px;height:46px;font-size:13px}
-  .card.s-C{color:#8ae66e}
-  .card.s-H{color:#ff9bb3}
-  .card.s-D{color:#7fd1ff}
-  .card.s-S{color:#c3b6ff}
+  .card.s-C{color:#8ae66e} .card.s-H{color:#ff9bb3}
+  .card.s-D{color:#7fd1ff} .card.s-S{color:#c3b6ff}
   .card.A{border-color:#ffd86b;box-shadow:inset 0 0 0 1px #ffd86b}
   .card.face{border-color:#ff9f6b}
   .dim{opacity:.5;filter:grayscale(.8)}
   .clickable{cursor:pointer}
   .selected{outline:2px solid var(--accent)}
-  .chips{display:flex;gap:6px;flex-wrap:wrap}
-  .chip{background:#0f1730;border:1px solid #24356a;border-radius:999px;padding:2px 8px;font-size:12px;color:#c0d3ff}
 
   aside .zone{position:sticky;top:12px}
   #log{font-size:12px;line-height:1.35;max-height:60vh;overflow:auto;background:#0e1322;border:1px solid var(--line);border-radius:8px;padding:8px}
   #hint{min-height:18px;color:var(--muted);margin-top:6px}
-
-  /* Keep Player 1 visible without page scroll */
-  .p1Row .player{scroll-margin-top:8px}
 </style>
 </head>
 <body>
 <header>
-  <h1>Bomb Diffusal – Matching Pyramid (Simplified)</h1>
+  <h1>Bomb Diffusal – Matching Pyramid (Play with Bots)</h1>
   <div class="bar">
     <span id="turnSpan"></span>
     <span id="deckSpan"></span>
@@ -88,14 +81,14 @@
     <div class="zone controls">
       <div class="row">
         <button id="newBtn" class="primary">New Game</button>
-        <label><input id="autoP1" type="checkbox" /> Auto-play P1</label>
         <label>Speed:
           <select id="speedSel">
-            <option value="500">Normal</option>
-            <option value="250" selected>Fast</option>
-            <option value="100">Turbo</option>
+            <option value="600">Normal</option>
+            <option value="300" selected>Fast</option>
+            <option value="120">Turbo</option>
           </select>
         </label>
+        <label><input id="autoP1" type="checkbox" /> Auto-play Player 1</label>
       </div>
       <div class="row">
         <button id="playHandBtn" disabled>Play Selected (Attempt)</button>
@@ -107,13 +100,12 @@
         <span class="chip">Attempt: <strong id="attemptCount">0/3</strong></span>
         <span class="chip">Phase: <strong id="phaseSpan">Ready</strong></span>
       </div>
-      <div id="hint"></div>
+      <div id="hint">You’re Player 1. When buttons enable, it’s your slot in the 3-card chain.</div>
     </div>
 
-    <!-- Players grid: Player 1 always on top row -->
-    <div class="p1Row">
-      <div class="player me" id="p0Box"></div>
-    </div>
+    <!-- Player 1 always visible (no scroll) -->
+    <div class="p1Row"><div class="player me" id="p0Box"></div></div>
+    <!-- Three bot seats -->
     <div class="botsRow">
       <div class="player" id="p1Box"></div>
       <div class="player" id="p2Box"></div>
@@ -130,40 +122,56 @@
 </main>
 
 <script>
-/* ================== Core Model & Helpers ================== */
-const SUITS = ["C","D","H","S"]; // ♣ ♦ ♥ ♠
-const SGL = {C:"♣", D:"♦", H:"♥", S:"♠"};
-const COLORS = {C:"black", S:"black", D:"red", H:"red"};
-const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-const RVAL = r=>r==="A"?1: r==="J"?11: r==="Q"?12: r==="K"?13: +r;
-const isFace = r => r==="J"||r==="Q"||r==="K";
-const sameColor = (a,b)=>COLORS[a.s]===COLORS[b.s];
-const oppColor = (a,b)=>COLORS[a.s]!==COLORS[b.s];
-const plusMinus1 = (a,b)=>Math.abs(RVAL(a.r)-RVAL(b.r))===1;
+/* ==================== Helpers & Constants ==================== */
+const SUITS=["C","D","H","S"], GL={C:"♣",D:"♦",H:"♥",S:"♠"};
+const CLR={C:"black",S:"black",D:"red",H:"red"};
+const RANKS=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const RVAL=r=>r==="A"?1:r==="J"?11:r==="Q"?12:r==="K"?13:+r;
+const isFace=r=>r==="J"||r==="Q"||r==="K";
+const oppColor=(a,b)=>CLR[a.s]!==CLR[b.s];
+const plusMinus1=(a,b)=>Math.abs(RVAL(a.r)-RVAL(b.r))===1;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function makeDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({s,r});return shuffle(d)}
+function label(c){return c?c.r+GL[c.s]:"—"}
+function vToRank(v){if(v===1)return"A";if(v===11)return"J";if(v===12)return"Q";if(v===13)return"K";return String(v)}
 
-function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
-function deck(){ const d=[]; for(const s of SUITS) for(const r of RANKS) d.push({s,r}); return shuffle(d); }
-function deep(o){ return JSON.parse(JSON.stringify(o)); }
-function label(c){ return c? (c.r+SGL[c.s]) : "—"; }
+/* ==================== State ==================== */
+const S={
+  deck:[],discard:[],
+  players:[], // {seat,name,isHuman,hand:[],staging:[],pyramid:{rows,core}}
+  turn:0,
+  attempt:[], // {seat,type:'hand'|'stage',card}
+  contributed:new Set(),
+  reshufflesLeft:1,
+  started:false,
+  speed:300,
+  autoP1:false
+};
+function newPlayer(i,isHuman){return{seat:i,name:isHuman?"You":"Bot "+(i+1),isHuman,hand:[],staging:[],pyramid:null}}
 
-function exposedSlots(p){ // returns exposed cells (row,col)
-  const R=p.pyramid.rows;
-  const out=[];
-  for(let c=0;c<R[0].length;c++){ if(R[0][c]) out.push({row:0,col:c,cell:R[0][c]}); }
+/* ==================== Pyramid / Exposure ==================== */
+function buildPyramid(D){
+  const rows=[[],[],[]];
+  for(let i=0;i<3;i++) rows[0].push({card:D.pop(),hidden:false,hazard:false});
+  for(let i=0;i<2;i++) rows[1].push({card:D.pop(),hidden:true,hazard:false});
+  rows[2].push({card:D.pop(),hidden:true,hazard:false});
+  const core={card:D.pop(),hidden:true,hazard:false,core:true};
+  return {rows,core};
+}
+function exposedSlots(p){
+  const R=p.pyramid.rows, out=[];
+  for(let c=0;c<R[0].length;c++) if(R[0][c]) out.push({row:0,col:c,cell:R[0][c]});
   for(let c=0;c<R[1].length;c++){
-    const belowL = R[0][c];
-    const belowR = R[0][c+1];
-    if(R[1][c] && !belowL && !belowR) out.push({row:1,col:c,cell:R[1][c]});
+    const bL=R[0][c], bR=R[0][c+1];
+    if(R[1][c] && !bL && !bR) out.push({row:1,col:c,cell:R[1][c]});
   }
-  if(R[2][0] && R[1].every(x=>!x)) out.push({row:2,col:0,cell:R[2][0]});
-  if(p.pyramid.core && !R[2][0]) out.push({row:3,col:0,cell:p.pyramid.core});
+  if(R[1].every(x=>!x) && R[2][0]) out.push({row:2,col:0,cell:R[2][0]});
+  if(!R[2][0] && p.pyramid.core) out.push({row:3,col:0,cell:p.pyramid.core});
   return out.filter(x=>x.cell && !x.cell.hidden);
 }
-
 function clearCell(p,row,col){
-  if(row===3){ p.pyramid.core=null; }
-  else { p.pyramid.rows[row][col]=null; }
-  // Flip exposure after clear
+  if(row===3){p.pyramid.core=null}
+  else {p.pyramid.rows[row][col]=null}
   const R=p.pyramid.rows;
   if(row===0){
     for(let c=0;c<2;c++){
@@ -171,169 +179,90 @@ function clearCell(p,row,col){
     }
     if(R[1].every(x=>!x) && R[2][0] && R[2][0].hidden) R[2][0].hidden=false;
     if(!R[2][0] && p.pyramid.core && p.pyramid.core.hidden) p.pyramid.core.hidden=false;
-  } else if(row===1){
+  }else if(row===1){
     if(R[1].every(x=>!x) && R[2][0] && R[2][0].hidden) R[2][0].hidden=false;
     if(!R[2][0] && p.pyramid.core && p.pyramid.core.hidden) p.pyramid.core.hidden=false;
-  } else if(row===2){
+  }else if(row===2){
     if(p.pyramid.core && p.pyramid.core.hidden) p.pyramid.core.hidden=false;
   }
 }
 
-function buildPyramid(D){
-  const rows=[[],[],[]];
-  for(let i=0;i<3;i++) rows[0].push({card:D.pop(), hidden:false, hazard:false});
-  for(let i=0;i<2;i++) rows[1].push({card:D.pop(), hidden:true,  hazard:false});
-  rows[2].push({card:D.pop(), hidden:true, hazard:false});
-  const core={card:D.pop(), hidden:true, hazard:false, core:true};
-  return {rows, core};
-}
-
-/* ================== Game State ================== */
-const S = {
-  deck: [], discard: [],
-  players: [], // {name,isHuman,hand,staging:[],pyramid}
-  turn: 0,
-  attempt: [], // {seat, type:'hand'|'stage', card}
-  contributed: new Set(),
-  reshufflesLeft: 1,
-  started:false,
-  speed: 250,
-  autoP1: false
-};
-
-function newPlayer(i,isHuman){
-  return { seat:i, name:isHuman?"You":"Bot "+(i+1), isHuman,
-           hand:[], staging:[], pyramid:null };
-}
-
-/* ================== Flow ================== */
+/* ==================== Game Flow ==================== */
 function startGame(){
-  S.deck = deck();
-  S.discard.length = 0;
-  S.players = [ newPlayer(0,true), newPlayer(1,false), newPlayer(2,false), newPlayer(3,false) ];
-  for(const p of S.players){
-    p.pyramid = buildPyramid(S.deck);
-  }
+  S.deck=makeDeck(); S.discard.length=0; S.reshufflesLeft=1; S.started=true;
+  S.players=[newPlayer(0,true),newPlayer(1,false),newPlayer(2,false),newPlayer(3,false)];
+  for(const p of S.players) p.pyramid=buildPyramid(S.deck);
   for(let i=0;i<S.players.length;i++) drawTo(i,4);
-  S.turn = 0;
-  S.attempt = [];
-  S.contributed.clear();
-  S.reshufflesLeft = 1;
-  S.started = true;
-  S.autoP1 = document.getElementById("autoP1").checked;
-  S.speed = +document.getElementById("speedSel").value;
-  renderAll();
-  log("Game started. Team must clear ALL pyramids before hazards overflow or deck runs out after one reshuffle.");
-  runIfBotOrAuto();
+  S.turn=0; S.attempt.length=0; S.contributed.clear();
+  S.speed=+document.getElementById("speedSel").value;
+  S.autoP1=false; document.getElementById("autoP1").checked=false; // default: YOU play
+  log("Game started. You are Player 1. Three bots will help on the 3-card attempt chain.");
+  renderAll(); runIfBotOrAuto();
 }
-
-/* Draw with 1 shared reshuffle */
 function drawTo(seat,n=1){
-  const P = S.players[seat];
+  const P=S.players[seat];
   for(let i=0;i<n;i++){
     if(S.deck.length===0){
       if(S.reshufflesLeft>0){
         log("🔄 Deck empty — reshuffling discard.");
-        S.deck = shuffle(S.discard);
-        S.discard = [];
-        S.reshufflesLeft--;
-        updateBars();
-      }else{
-        endGame(false,"Deck exhausted a second time. 💥 The bomb explodes!");
-        return;
-      }
+        S.deck=shuffle(S.discard); S.discard=[]; S.reshufflesLeft--; updateBars();
+      }else{ endGame(false,"Deck exhausted a second time. 💥 The bomb explodes!"); return; }
     }
     if(S.deck.length===0) return;
     P.hand.push(S.deck.pop());
   }
 }
-
-/* Attempt evaluation (active player’s side only) */
-function targetRanksForActive(){
-  const P=S.players[S.turn];
-  return exposedSlots(P).map(x=>x.cell.card.r);
-}
+function targetRanksForActive(){ return exposedSlots(S.players[S.turn]).map(x=>x.cell.card.r); }
 
 function evaluateAttempt(){
-  const targets = targetRanksForActive();
-  if(targets.length===0) return {cleared:false};
-
-  // build possible ranks present from attempt (including Ace ±1 logic)
-  const played = S.attempt.filter(a=>a.card).map(a=>a.card);
-  const values = new Set(played.map(c=>c.r));
-  const hasAce = played.some(c=>c.r==="A");
+  const targets=targetRanksForActive(); if(!targets.length) return {cleared:false};
+  const played=S.attempt.filter(a=>a.card).map(a=>a.card);
+  const values=new Set(played.map(c=>c.r));
+  const hasAce=played.some(c=>c.r==="A");
   if(hasAce){
     for(const c of played){
-      if(c.r==="A" || isFace(c.r)) continue;
-      const v=RVAL(c.r), down=v-1, up=v+1;
-      if(down>=1) values.add(vToRank(down));
-      if(up<=13) values.add(vToRank(up));
+      if(c.r==="A"||isFace(c.r)) continue;
+      const v=RVAL(c.r), d=v-1, u=v+1;
+      if(d>=1) values.add(vToRank(d));
+      if(u<=13) values.add(vToRank(u));
     }
   }
-
-  // If any target rank is achievable -> clear the first exposed matching slot (preferring higher rows)
   const P=S.players[S.turn];
-  const exposed = exposedSlots(P);
-  let pick = null;
+  const exposed=exposedSlots(P);
+  let pick=null;
   for(const t of targets){
-    if(values.has(t)){
-      pick = exposed.find(e=>e.cell.card.r===t);
-      if(pick) break;
-    }
+    if(values.has(t)){ pick=exposed.find(e=>e.cell.card.r===t); if(pick) break; }
   }
-  // If not found (e.g., using "any" via face reward doesn't apply in simplified), fail
   if(!pick) return {cleared:false};
-
-  // Consume attempt cards into discard
   for(const a of S.attempt) if(a.card) S.discard.push(a.card);
-
-  const clearedCard = pick.cell.card;
-  clearCell(P, pick.row, pick.col);
-
-  // Face reward: draw 2 immediately to the ACTIVE player
-  if(isFace(clearedCard.r)){
-    drawTo(S.turn,2);
-    log(`⭐ ${P.name} cleared a face (${label(clearedCard)}): draws 2.`);
-  }
-
+  const clearedCard=pick.cell.card;
+  clearCell(P,pick.row,pick.col);
+  if(isFace(clearedCard.r)){ drawTo(S.turn,2); log(`⭐ ${P.name} cleared ${label(clearedCard)} and draws 2.`); }
   return {cleared:true, pick, clearedCard};
 }
 
-function vToRank(v){ if(v===1) return "A"; if(v===11) return "J"; if(v===12) return "Q"; if(v===13) return "K"; return String(v); }
-
-/* After attempt resolves (success or hazard) */
 function afterAttemptResolve(){
-  // Refill contributors back to 4
+  // refill contributors to 4
   for(const seat of S.contributed){
     const P=S.players[seat];
     while(P.hand.length<4) drawTo(seat,1);
   }
-  S.attempt.length = 0;
-  S.contributed.clear();
+  S.attempt.length=0; S.contributed.clear();
 
-  // Check team win
-  if(checkTeamWin()){
-    endGame(true,"✅ All cores defused. Team victory!");
-    return;
-  }
+  if(checkTeamWin()){ endGame(true,"✅ All cores defused. Team victory!"); return; }
 
-  // Next turn
-  S.turn = (S.turn+1)%S.players.length;
-  renderAll();
-  runIfBotOrAuto();
+  S.turn=(S.turn+1)%S.players.length;
+  renderAll(); runIfBotOrAuto();
 }
-
 function checkTeamWin(){
   return S.players.every(p=>{
     const R=p.pyramid.rows;
     return R[0].every(x=>!x) && R[1].every(x=>!x) && !R[2][0] && !p.pyramid.core;
   });
 }
-
 function addHazardBottomUp(){
-  const P = S.players[S.turn];
-  // find lowest open slot: bottom row -> middle -> top -> core
-  const order = [
+  const P=S.players[S.turn];
+  const order=[
     {row:0,col:0},{row:0,col:1},{row:0,col:2},
     {row:1,col:0},{row:1,col:1},
     {row:2,col:0},
@@ -342,210 +271,89 @@ function addHazardBottomUp(){
   for(const pos of order){
     if(pos.row===3){
       if(!P.pyramid.core){
-        // core slot empty: place hazard core
-        const c = drawHazardCard();
-        if(!c) return; // deck loss handled elsewhere
-        P.pyramid.core = {card:c, hidden:true, hazard:true, core:true};
-        log(`⚠️ Hazard placed on ${P.name}'s core.`);
-        return;
+        const c=drawHazardCard(); if(!c) return;
+        P.pyramid.core={card:c,hidden:true,hazard:true,core:true};
+        log(`⚠️ Hazard placed on ${P.name}'s core.`); return;
       }
     }else{
       if(!P.pyramid.rows[pos.row][pos.col]){
-        const c = drawHazardCard();
-        if(!c) return;
-        P.pyramid.rows[pos.row][pos.col] = {card:c, hidden:true, hazard:true};
-        log(`⚠️ Hazard added to ${P.name}'s pyramid (row ${pos.row+1}).`);
-        return;
+        const c=drawHazardCard(); if(!c) return;
+        P.pyramid.rows[pos.row][pos.col]={card:c,hidden:true,hazard:true};
+        log(`⚠️ Hazard added to ${P.name}'s pyramid (row ${pos.row+1}).`); return;
       }
     }
   }
-  // If no place available → overflow -> loss
-  endGame(false, `${P.name}'s pyramid overflowed with hazards. 💥 The bomb explodes!`);
+  endGame(false,`${P.name}'s pyramid overflowed with hazards. 💥 The bomb explodes!`);
 }
 function drawHazardCard(){
   if(S.deck.length===0){
-    if(S.reshufflesLeft>0){
-      log("🔄 Deck empty — reshuffling discard (before hazard).");
-      S.deck = shuffle(S.discard); S.discard=[]; S.reshufflesLeft--; updateBars();
-    }else{
-      endGame(false,"Deck exhausted a second time. 💥 The bomb explodes!");
-      return null;
-    }
+    if(S.reshufflesLeft>0){ log("🔄 Deck empty — reshuffling discard (before hazard)."); S.deck=shuffle(S.discard); S.discard=[]; S.reshufflesLeft--; updateBars(); }
+    else { endGame(false,"Deck exhausted a second time. 💥 The bomb explodes!"); return null; }
   }
   return S.deck.pop();
 }
 
-/* ================== Human Controls ================== */
-let selectedHandIdx=null;
-function onSelectHand(idx){ selectedHandIdx=idx; renderAll(); }
-
-function playFromHand(){
-  if(!canHumanActNow()) return;
-  if(selectedHandIdx==null) return;
-  const P=S.players[0];
-  const c=P.hand.splice(selectedHandIdx,1)[0];
-  selectedHandIdx=null;
-  S.attempt.push({seat:0,type:"hand",card:c});
-  S.contributed.add(0);
-  log(`🃏 You play ${label(c)}.`);
-  postContributionStep();
-}
-function useStagingTop(){
-  if(!canHumanActNow()) return;
-  const P=S.players[0];
-  const top=P.staging[P.staging.length-1];
-  if(!top) return;
-  const c=P.staging.pop();
-  S.attempt.push({seat:0,type:"stage",card:c});
-  S.contributed.add(0);
-  log(`🗂️ You use staging top ${label(c)}.`);
-  postContributionStep();
-}
-function stageSelected(){
-  if(S.turn!==0) return; // only active player can stage as their contribution
-  if(selectedHandIdx==null) return;
-  const P=S.players[0];
-  const card=P.hand[selectedHandIdx];
-  const stTop=P.staging[P.staging.length-1];
-  // Simplified rule: opposite color OR ±1
-  if(stTop && !(oppColor(card,stTop) || plusMinus1(card,stTop))){
-    hint("Staging requires opposite color OR ±1 rank from the last staged card.");
-    return;
-  }
-  P.staging.push(card);
-  P.hand.splice(selectedHandIdx,1);
-  selectedHandIdx=null;
-  S.attempt.push({seat:0,type:"stage",card:card});
-  S.contributed.add(0);
-  log(`📎 You stage ${label(card)} (counts as your attempt play).`);
-  postContributionStep();
-}
-function skipHuman(){
-  if(!canHumanActNow()) return;
-  S.contributed.add(0);
-  log("⏭️ You skip.");
-  postContributionStep();
-}
-
-function canHumanActNow(){
-  if(!S.started) return false;
-  if(S.autoP1) return false;
-  const order = contributionOrder();
-  const idx = S.contributed.size;
-  return order[idx]===0 && !S.contributed.has(0) && S.attempt.length<3;
-}
-
-/* ================== Turn / Attempt Flow ================== */
-function contributionOrder(){
-  const arr=[S.turn];
-  arr.push((S.turn+1)%S.players.length);
-  arr.push((S.turn+2)%S.players.length);
-  return arr;
-}
+/* ==================== Contribution Chain ==================== */
+function contributionOrder(){ return [S.turn, (S.turn+1)%4, (S.turn+2)%4]; }
 
 function postContributionStep(){
   renderAll();
-  // If we have 3 cards or the table had its chances -> resolve
-  if(S.attempt.length>=3 || S.contributed.size>=Math.min(3,S.players.length)){
-    const res = evaluateAttempt();
-    if(res.cleared){
-      log(`✅ ${S.players[S.turn].name} clears a card.`);
-      afterAttemptResolve();
-    }else{
-      log(`❌ No clear. Hazard to ${S.players[S.turn].name}.`);
-      addHazardBottomUp();
-      afterAttemptResolve();
-    }
+  const needed = Math.min(3, S.players.length);
+  if(S.attempt.length>=3 || S.contributed.size>=needed){
+    const res=evaluateAttempt();
+    if(res.cleared){ log(`✅ ${S.players[S.turn].name} clears a card.`); afterAttemptResolve(); }
+    else { log(`❌ No clear. Hazard to ${S.players[S.turn].name}.`); addHazardBottomUp(); afterAttemptResolve(); }
   }else{
-    // next contributor (bot or human)
     runContributors();
   }
 }
 
 function runIfBotOrAuto(){
   if(!S.started) return;
-  if(S.autoP1 || S.players[S.turn].seat!==0){
-    runContributors();
-  } else {
-    // Human active – enable controls when it's your slot in the chain
+  if(S.players[S.turn].seat===0 && !S.autoP1){
+    hint("Your turn: play from hand, stage (opposite color OR ±1), use staging top, or skip.");
     renderAll();
-    hint("Your turn. Play from hand, stage, use staging top, or skip.");
+  }else{
+    runContributors();
   }
 }
-
 function runContributors(){
-  const order = contributionOrder();
-  const idx = S.contributed.size;
-  const seat = order[idx];
+  const order=contributionOrder();
+  const idx=S.contributed.size;
+  const seat=order[idx];
   if(seat==null) return;
-
-  const P = S.players[seat];
-  if(P.seat===0 && !S.autoP1){ // wait for human
-    renderAll(); return;
-  }
-  // Bot contribution
+  const P=S.players[seat];
+  if(P.seat===0 && !S.autoP1){ renderAll(); return; } // wait for human
   setTimeout(()=>botContribute(P), S.speed);
 }
 
-/* ================== Bot Logic ================== */
+/* ==================== Bot AI ==================== */
 function botContribute(P){
   if(S.attempt.length>=3 || S.contributed.has(P.seat)) return;
+  const targets=targetRanksForActive();
 
-  const targets = targetRanksForActive();
+  // 1) direct hand match
+  let i=P.hand.findIndex(c=>targets.includes(c.r));
+  if(i>-1){ const c=P.hand.splice(i,1)[0]; S.attempt.push({seat:P.seat,type:"hand",card:c}); S.contributed.add(P.seat); log(`🤖 ${P.name} plays ${label(c)} (match).`); postContributionStep(); return; }
 
-  // 1) Direct hand match
-  let idx = P.hand.findIndex(c=>targets.includes(c.r));
-  if(idx>-1){
-    const c=P.hand.splice(idx,1)[0];
-    S.attempt.push({seat:P.seat,type:"hand",card:c});
-    S.contributed.add(P.seat);
-    log(`🤖 ${P.name} plays ${label(c)} (hand) to match.`);
-    postContributionStep(); return;
-  }
+  // 2) staging top matches
+  const top=P.staging[P.staging.length-1];
+  if(top && targets.includes(top.r)){ const c=P.staging.pop(); S.attempt.push({seat:P.seat,type:"stage",card:c}); S.contributed.add(P.seat); log(`🤖 ${P.name} uses staging top ${label(c)} (match).`); postContributionStep(); return; }
 
-  // 2) Use staging top if it matches
-  const top = P.staging[P.staging.length-1];
-  if(top && targets.includes(top.r)){
-    const c=P.staging.pop();
-    S.attempt.push({seat:P.seat,type:"stage",card:c});
-    S.contributed.add(P.seat);
-    log(`🤖 ${P.name} uses staging top ${label(c)} to match.`);
-    postContributionStep(); return;
-  }
-
-  // 3) Ace ±1 pairing: if someone already played a number, add Ace; or if Ace exists, play near-number
-  const numsInAttempt = S.attempt.map(a=>a.card).filter(Boolean).filter(c=>c.r!=="A"&&!isFace(c.r));
-  const aceInAttempt = S.attempt.some(a=>a.card && a.card.r==="A");
-
-  // If we can create ±1 to hit target, do it
-  // 3a) play Ace if we have a number down
-  const aceIdx = P.hand.findIndex(c=>c.r==="A");
-  if(aceIdx>-1 && numsInAttempt.length){
-    const c=P.hand.splice(aceIdx,1)[0];
-    S.attempt.push({seat:P.seat,type:"hand",card:c});
-    S.contributed.add(P.seat);
-    log(`🤖 ${P.name} adds Ace for ±1 combo.`);
-    postContributionStep(); return;
-  }
-  // 3b) if Ace already there, play near-number
+  // 3) Ace ±1 pairing (add Ace if a number exists; add near-number if Ace exists)
+  const nums=S.attempt.map(a=>a.card).filter(Boolean).filter(c=>c.r!=="A"&&!isFace(c.r));
+  const aceInAttempt=S.attempt.some(a=>a.card && a.card.r==="A");
+  const aceIdx=P.hand.findIndex(c=>c.r==="A");
+  if(aceIdx>-1 && nums.length){ const c=P.hand.splice(aceIdx,1)[0]; S.attempt.push({seat:P.seat,type:"hand",card:c}); S.contributed.add(P.seat); log(`🤖 ${P.name} adds Ace for ±1.`); postContributionStep(); return; }
   if(aceInAttempt){
-    const nearIdx = P.hand.findIndex(c=>{
-      if(c.r==="A"||isFace(c.r)) return false;
-      return targets.some(t=>Math.abs(RVAL(c.r)-RVAL(t))===1);
-    });
-    if(nearIdx>-1){
-      const c=P.hand.splice(nearIdx,1)[0];
-      S.attempt.push({seat:P.seat,type:"hand",card:c});
-      S.contributed.add(P.seat);
-      log(`🤖 ${P.name} plays ${label(c)} to pair with Ace.`);
-      postContributionStep(); return;
-    }
+    const nearIdx=P.hand.findIndex(c=>c.r!=="A"&&!isFace(c.r) && targets.some(t=>Math.abs(RVAL(c.r)-RVAL(t))===1));
+    if(nearIdx>-1){ const c=P.hand.splice(nearIdx,1)[0]; S.attempt.push({seat:P.seat,type:"hand",card:c}); S.contributed.add(P.seat); log(`🤖 ${P.name} plays ${label(c)} to pair with Ace.`); postContributionStep(); return; }
   }
 
-  // 4) If active, consider staging (opposite color OR ±1)
+  // 4) if active, consider staging (simplified rule: opposite color OR ±1)
   if(P.seat===S.turn){
-    const stTop = P.staging[P.staging.length-1];
-    const pick = P.hand.findIndex(c => !stTop || (oppColor(c,stTop) || plusMinus1(c,stTop)));
+    const stTop=P.staging[P.staging.length-1];
+    const pick=P.hand.findIndex(c=>!stTop || (oppColor(c,stTop) || plusMinus1(c,stTop)));
     if(pick>-1){
       const c=P.hand.splice(pick,1)[0];
       P.staging.push(c);
@@ -556,178 +364,128 @@ function botContribute(P){
     }
   }
 
-  // 5) Skip
-  S.contributed.add(P.seat);
-  log(`🤖 ${P.name} skips.`);
-  postContributionStep();
+  // 5) skip
+  S.contributed.add(P.seat); log(`🤖 ${P.name} skips.`); postContributionStep();
 }
 
-/* ================== Render ================== */
-const pBoxes = [ "p0Box","p1Box","p2Box","p3Box" ].map(id=>document.getElementById(id));
-const logEl = document.getElementById("log");
-const hintEl = document.getElementById("hint");
+/* ==================== Human Controls ==================== */
+let selectedHandIdx=null;
+function onSelectHand(idx){ selectedHandIdx=idx; renderAll(); }
 
-function log(t){ const d=document.createElement("div"); d.textContent=t; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
-function hint(t){ hintEl.textContent = t||""; }
+function canHumanActNow(){
+  if(!S.started || S.autoP1) return false;
+  const order=contributionOrder(); const idx=S.contributed.size;
+  return order[idx]===0 && !S.contributed.has(0) && S.attempt.length<3;
+}
+function playFromHand(){
+  if(!canHumanActNow()||selectedHandIdx==null) return;
+  const P=S.players[0]; const c=P.hand.splice(selectedHandIdx,1)[0]; selectedHandIdx=null;
+  S.attempt.push({seat:0,type:"hand",card:c}); S.contributed.add(0);
+  log(`🃏 You play ${label(c)}.`); postContributionStep();
+}
+function useStagingTop(){
+  if(!canHumanActNow()) return;
+  const P=S.players[0]; const top=P.staging[P.staging.length-1]; if(!top) return;
+  const c=P.staging.pop();
+  S.attempt.push({seat:0,type:"stage",card:c}); S.contributed.add(0);
+  log(`🗂️ You use staging top ${label(c)}.`); postContributionStep();
+}
+function stageSelected(){
+  if(S.turn!==0 || selectedHandIdx==null) return;
+  const P=S.players[0]; const card=P.hand[selectedHandIdx];
+  const stTop=P.staging[P.staging.length-1];
+  if(stTop && !(oppColor(card,stTop) || plusMinus1(card,stTop))){
+    hint("Staging requires opposite color OR ±1 from last staged."); return;
+  }
+  P.staging.push(card); P.hand.splice(selectedHandIdx,1); selectedHandIdx=null;
+  S.attempt.push({seat:0,type:"stage",card}); S.contributed.add(0);
+  log(`📎 You stage ${label(card)} (counts as your attempt play).`); postContributionStep();
+}
+function skipHuman(){ if(!canHumanActNow()) return; S.contributed.add(0); log("⏭️ You skip."); postContributionStep(); }
 
+/* ==================== Render ==================== */
+const pBoxes=["p0Box","p1Box","p2Box","p3Box"].map(id=>document.getElementById(id));
+const logEl=document.getElementById("log"); const hintEl=document.getElementById("hint");
+function log(t){const d=document.createElement("div"); d.textContent=t; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;}
+function hint(t){hintEl.textContent=t||"";}
 function updateBars(){
-  document.getElementById("turnSpan").textContent = S.started ? `Turn: ${S.players[S.turn]?.name}` : "";
-  document.getElementById("deckSpan").textContent = S.started ? `Deck: ${S.deck.length}` : "";
-  document.getElementById("reshuffleSpan").textContent = S.started ? `Reshuffles left: ${S.reshufflesLeft}` : "";
-  document.getElementById("attemptCount").textContent = `${S.attempt.length}/3`;
-  document.getElementById("phaseSpan").textContent = S.started ? `Attempt` : "Ready";
-  const targets = S.started ? targetRanksForActive() : [];
-  document.getElementById("targetSpan").textContent = S.started ? `Targets: ${targets.join(", ")||"—"}` : "";
+  document.getElementById("turnSpan").textContent=S.started?`Turn: ${S.players[S.turn]?.name}`:"";
+  document.getElementById("deckSpan").textContent=S.started?`Deck: ${S.deck.length}`:"";
+  document.getElementById("reshuffleSpan").textContent=S.started?`Reshuffles left: ${S.reshufflesLeft}`:"";
+  document.getElementById("attemptCount").textContent=`${S.attempt.length}/3`;
+  document.getElementById("phaseSpan").textContent=S.started?"Attempt":"Ready";
+  const t=S.started?targetRanksForActive():[]; document.getElementById("targetSpan").textContent=S.started?`Targets: ${t.join(", ")||"—"}`:"";
 }
-
-function renderCard(c, cls=""){
-  const el=document.createElement("div");
-  el.className = "card "+cls+` s-${c.s}`;
-  el.textContent = c.r + SGL[c.s];
-  if(c.r==="A") el.classList.add("A");
-  if(isFace(c.r)) el.classList.add("face");
-  return el;
-}
-function hiddenCardMini(){ const d=document.createElement("div"); d.className="card mini dim"; d.textContent="🂠"; return d; }
-function emptySlot(){ const d=document.createElement("div"); d.className="slot"; return d; }
-function hiddenSlot(hazard=false, core=false){ const d=document.createElement("div"); d.className="card dim"+(hazard?" hazard":"")+(core?" coreMark":""); d.textContent="🂠"; return d; }
-
-function renderPyramid(p, compact=false){
-  const wrap=document.createElement("div"); wrap.className="pyramid";
-  const R=p.pyramid.rows;
-
-  // top row (1)
-  const r2=document.createElement("div"); r2.className="py-row";
-  r2.appendChild(renderCell(R[2][0], true, true));
-  wrap.appendChild(r2);
-
-  // middle (2)
-  const r1=document.createElement("div"); r1.className="py-row";
-  for(let i=0;i<2;i++){ r1.appendChild(renderCell(R[1][i], true)); }
-  wrap.appendChild(r1);
-
-  // bottom (3)
-  const r0=document.createElement("div"); r0.className="py-row";
-  for(let i=0;i<3;i++){ r0.appendChild(renderCell(R[0][i], true)); }
-  wrap.appendChild(r0);
-
-  // core
-  const coreRow=document.createElement("div"); coreRow.className="py-row";
-  coreRow.appendChild(renderCell(p.pyramid.core, false, true,true));
-  wrap.appendChild(coreRow);
-
-  // highlight exposed
+function renderCard(c,cls=""){const el=document.createElement("div"); el.className="card "+cls+` s-${c.s}`; el.textContent=c.r+GL[c.s]; if(c.r==="A") el.classList.add("A"); if(isFace(c.r)) el.classList.add("face"); return el;}
+function emptySlot(){const d=document.createElement("div"); d.className="slot"; return d;}
+function hiddenSlot(hazard=false, core=false){const d=document.createElement("div"); d.className="card dim"+(hazard?" hazard":"")+(core?" coreMark":""); d.textContent="🂠"; return d;}
+function renderCell(cell, allowEmpty, isCore=false){ if(!cell) return allowEmpty?emptySlot():document.createElement("div"); if(cell.hidden) return hiddenSlot(cell.hazard,isCore); return renderCard(cell.card,isCore?" coreMark":""); }
+function renderPyramid(p){
+  const wrap=document.createElement("div"); wrap.className="pyramid"; const R=p.pyramid.rows;
+  const r2=document.createElement("div"); r2.className="py-row"; r2.appendChild(renderCell(R[2][0],true)); wrap.appendChild(r2);
+  const r1=document.createElement("div"); r1.className="py-row"; for(let i=0;i<2;i++) r1.appendChild(renderCell(R[1][i],true)); wrap.appendChild(r1);
+  const r0=document.createElement("div"); r0.className="py-row"; for(let i=0;i<3;i++) r0.appendChild(renderCell(R[0][i],true)); wrap.appendChild(r0);
+  const coreRow=document.createElement("div"); coreRow.className="py-row"; coreRow.appendChild(renderCell(p.pyramid.core,false,true)); wrap.appendChild(coreRow);
   exposedSlots(p).forEach(ex=>{
-    const rows = wrap.querySelectorAll(".py-row");
-    if(ex.row===3){
-      rows[3].firstChild.classList.add("exposed");
-    }else{
-      rows[2-ex.row].children[ex.col].classList.add("exposed");
-    }
+    const rows=wrap.querySelectorAll(".py-row");
+    if(ex.row===3) rows[3].firstChild.classList.add("exposed");
+    else rows[2-ex.row].children[ex.col].classList.add("exposed");
   });
   return wrap;
 }
-function renderCell(cell, allowEmpty, isTop=false, isCore=false){
-  if(!cell) return allowEmpty ? emptySlot() : document.createElement("div");
-  if(cell.hidden) return hiddenSlot(cell.hazard, isCore);
-  const n=renderCard(cell.card, isCore?" coreMark": "");
-  return n;
-}
-
 function renderPlayerBox(p, box, showHand){
   box.innerHTML="";
-  const h=document.createElement("h2"); h.textContent = p.name + (S.turn===p.seat?" — Your Turn":"");
-  box.appendChild(h);
-
-  // chips
+  const h=document.createElement("h2"); h.textContent=p.name+(S.turn===p.seat?" — Turn":""); box.appendChild(h);
   const chips=document.createElement("div"); chips.className="chips";
-  chips.appendChild(chip(`Hand: ${p.hand.length}`));
-  chips.appendChild(chip(`Staging: ${p.staging.length}`));
+  chips.appendChild(chip(`Hand: ${p.hand.length}`)); chips.appendChild(chip(`Staging: ${p.staging.length}`));
   box.appendChild(chips);
-
-  // pyramid
   box.appendChild(renderPyramid(p));
-
-  // staging
-  const lab=document.createElement("div"); lab.className="note"; lab.textContent="Staging (top at right):";
-  box.appendChild(lab);
-  const st=document.createElement("div"); st.className="staging";
-  p.staging.forEach(c=> st.appendChild(renderCard(c,"mini")));
-  box.appendChild(st);
-
-  // hand
-  const hLab=document.createElement("div"); hLab.className="note";
-  hLab.textContent = showHand ? "Your hand (select 1):" : "Hand (hidden)";
-  box.appendChild(hLab);
+  const lab=document.createElement("div"); lab.className="note"; lab.textContent="Staging (top at right):"; box.appendChild(lab);
+  const st=document.createElement("div"); st.className="staging"; p.staging.forEach(c=>st.appendChild(renderCard(c,"mini"))); box.appendChild(st);
+  const hLab=document.createElement("div"); hLab.className="note"; hLab.textContent=showHand?"Your hand (select 1):":"Hand (hidden)"; box.appendChild(hLab);
   const hand=document.createElement("div"); hand.className="hand";
-  if(showHand){
-    p.hand.forEach((c,i)=>{
-      const n=renderCard(c,"clickable");
-      if(selectedHandIdx===i) n.classList.add("selected");
-      n.addEventListener("click",()=>onSelectHand(i));
-      hand.appendChild(n);
-    });
-  }else{
-    p.hand.forEach(()=> hand.appendChild(hiddenCardMini()));
-  }
+  if(showHand){ p.hand.forEach((c,i)=>{ const n=renderCard(c,"clickable"); if(selectedHandIdx===i) n.classList.add("selected"); n.addEventListener("click",()=>onSelectHand(i)); hand.appendChild(n); }); }
+  else { p.hand.forEach(()=>{ const n=document.createElement("div"); n.className="card mini dim"; n.textContent="🂠"; hand.appendChild(n); }); }
   box.appendChild(hand);
 }
-function chip(t){ const s=document.createElement("span"); s.className="chip"; s.textContent=t; return s; }
+function chip(t){const s=document.createElement("span"); s.className="chip"; s.textContent=t; return s;}
 
 function renderAll(){
   if(!S.started){
-    document.getElementById("playHandBtn").disabled = true;
-    document.getElementById("useStageBtn").disabled = true;
-    document.getElementById("stageBtn").disabled = true;
-    document.getElementById("skipBtn").disabled = true;
+    ["playHandBtn","useStageBtn","stageBtn","skipBtn"].forEach(id=>document.getElementById(id).disabled=true);
     return;
   }
   updateBars();
-
-  // Player 1 visible zone
   renderPlayerBox(S.players[0], pBoxes[0], !S.autoP1);
-
-  // Bots compact
   renderPlayerBox(S.players[1], pBoxes[1], false);
   renderPlayerBox(S.players[2], pBoxes[2], false);
   renderPlayerBox(S.players[3], pBoxes[3], false);
 
-  // Enable human controls only at their contribution slot (and not in auto)
-  const myTurnSlot = canHumanActNow();
-  document.getElementById("playHandBtn").disabled = !myTurnSlot || selectedHandIdx==null;
-  document.getElementById("useStageBtn").disabled = !myTurnSlot || S.players[0].staging.length===0;
-  document.getElementById("stageBtn").disabled = !(S.turn===0 && !S.autoP1 && selectedHandIdx!=null);
-  document.getElementById("skipBtn").disabled = !myTurnSlot;
+  const myTurnSlot=canHumanActNow();
+  document.getElementById("playHandBtn").disabled=!myTurnSlot || selectedHandIdx==null;
+  document.getElementById("useStageBtn").disabled=!myTurnSlot || S.players[0].staging.length===0;
+  document.getElementById("stageBtn").disabled=!(S.turn===0 && !S.autoP1 && selectedHandIdx!=null);
+  document.getElementById("skipBtn").disabled=!myTurnSlot;
 }
 
-/* ================== End Game ================== */
-let done=false;
-function endGame(win,msg){
-  if(done) return; done=true;
-  renderAll();
-  log((win?"🏆 ":"💥 ")+msg);
-  hint("Game over. Click New Game to play again.");
-}
+/* ==================== End Game & Wire ==================== */
+let ended=false;
+function endGame(win,msg){ if(ended) return; ended=true; renderAll(); log((win?"🏆 ":"💥 ")+msg); hint("Game over. Click New Game to play again."); }
 
-/* ================== Wire UI ================== */
-document.getElementById("newBtn").addEventListener("click", ()=>{
-  done=false; logEl.innerHTML=""; selectedHandIdx=null;
-  startGame();
-});
-document.getElementById("autoP1").addEventListener("change", e=>{
-  S.autoP1 = e.target.checked;
-  renderAll();
-  runIfBotOrAuto();
-});
-document.getElementById("speedSel").addEventListener("change", e=>{ S.speed=+e.target.value; });
+const logEl=document.getElementById("log"); const hintEl=document.getElementById("hint");
+function log(t){const d=document.createElement("div"); d.textContent=t; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;}
+function hint(t){hintEl.textContent=t||"";}
 
-document.getElementById("playHandBtn").addEventListener("click", playFromHand);
-document.getElementById("useStageBtn").addEventListener("click", useStagingTop);
-document.getElementById("stageBtn").addEventListener("click", stageSelected);
-document.getElementById("skipBtn").addEventListener("click", skipHuman);
+document.getElementById("newBtn").addEventListener("click",()=>{ ended=false; logEl.innerHTML=""; selectedHandIdx=null; startGame(); });
+document.getElementById("speedSel").addEventListener("change",e=>{ S.speed=+e.target.value; });
+document.getElementById("autoP1").addEventListener("change",e=>{ S.autoP1=e.target.checked; renderAll(); runIfBotOrAuto(); });
 
-/* ================== Boot ================== */
-hint("Click New Game. Leave 'Auto-play P1' checked to watch 4 bots cooperate, or uncheck to play as Player 1.");
+document.getElementById("playHandBtn").addEventListener("click",playFromHand);
+document.getElementById("useStageBtn").addEventListener("click",useStagingTop);
+document.getElementById("stageBtn").addEventListener("click",stageSelected);
+document.getElementById("skipBtn").addEventListener("click",skipHuman);
+
+/* Boot */
 renderAll();
 </script>
 </body>
