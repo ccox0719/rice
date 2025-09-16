@@ -532,7 +532,8 @@ document.getElementById("stageBtn").addEventListener("click",stageSelected);
 document.getElementById("skipBtn").addEventListener("click",skipHuman);
 
 /* Boot */
-let selectedHandIdx=null;
+// ✅ just reset the already-declared variable
+selectedHandIdx = null;
 renderAll();
 </script>
 </body>
