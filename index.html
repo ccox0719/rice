@@ -1,618 +1,455 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bomb Diffusal – Pyramid (Minimal)</title>
-<style>
-  :root{
-    --bg:#0b0f19; --panel:#121826; --ink:#e6ebff; --muted:#9fb1ff;
-    --accent:#5aa9ff; --danger:#ff6b6b; --ok:#17c964; --card:#0f1523; --line:#1c2542;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  header{padding:10px 14px;border-bottom:1px solid var(--line)}
-  h1{margin:0 0 6px;font-size:18px}
-  #top{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
-  main{display:grid;grid-template-columns:1fr 320px;gap:12px;padding:12px}
-  @media (max-width: 1000px){ main{grid-template-columns:1fr} aside{order:-1} }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Bomb Diffusal – Pyramid</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#121821; --ink:#e7eef7; --muted:#9fb0c6; --accent:#5dd2ff; --danger:#ff6b6b; --ok:#7dff91; --warn:#ffd166;
+      --card:#1c2531; --card-face:#202b39; --shadow:0 8px 26px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Helvetica Neue,Arial,sans-serif;background:var(--bg);color:var(--ink);} 
+    button,input,select{font:inherit}
 
-  .zone{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
-  #table{display:grid;gap:10px}
-  .players{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:10px}
-  @media (max-width: 720px){ .players{grid-template-columns:1fr} }
+    /* Layout */
+    .app{max-width:820px;margin:0 auto;padding:10px 10px 80px;display:grid;gap:10px}
+    .topbar{position:sticky;top:0;background:linear-gradient(180deg, rgba(11,15,20,.98), rgba(11,15,20,.7));backdrop-filter:blur(10px);z-index:10;padding:8px;border-bottom:1px solid #1a2431}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .row > *{flex:0 0 auto}
+    .spacer{flex:1}
+    .btn{background:#16202c;border:1px solid #223144;color:var(--ink);padding:6px 10px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
+    .btn[disabled]{opacity:.45;cursor:not-allowed}
+    .btn.primary{background:var(--accent);color:#071019;border-color:#50c6f2}
+    .btn.warn{background:var(--warn);color:#201b00}
+    .btn.danger{background:var(--danger);color:#240000}
+    .seg{display:flex;border:1px solid #223144;border-radius:10px;overflow:hidden}
+    .seg button{border:0;background:#121a24;color:var(--muted);padding:6px 10px}
+    .seg button.active{background:var(--accent);color:#041018}
 
-  .player{border:1px solid var(--line);border-radius:10px;padding:10px}
-  .player.active{outline:2px solid var(--accent)}
-  .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-  .ph .name{font-weight:700;color:#c6d4ff}
-  .tag{font-size:12px;background:#0f1730;border:1px solid #2a3a6a;border-radius:999px;padding:2px 6px;color:#c0d3ff}
+    .table{display:grid;gap:8px}
+    .players{display:grid;gap:10px}
+    @media (min-width:560px){.players{grid-template-columns:1fr 1fr}}
 
-  .hand{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-  .staging{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .panel{background:var(--panel);border:1px solid #1a2431;border-radius:16px;padding:10px;box-shadow:var(--shadow)}
+    .panel.current{outline:2px solid var(--accent)}
 
-  .pyramid{display:grid;gap:5px;margin-top:8px}
-  .row{display:flex;gap:6px;justify-content:center}
-  .slot{width:42px;height:56px;border:1px dashed #2a3a6a;border-radius:8px;display:flex;align-items:center;justify-content:center}
-  .card{
-    display:flex;align-items:center;justify-content:center;
-    min-width:42px;height:56px;border-radius:8px;border:1px solid #2b3e7d;
-    background:linear-gradient(180deg,#0f1830,#0c1326);font-weight:700;user-select:none;
-  }
-  .card.joker{border-color:#ffd86b;box-shadow:inset 0 0 0 1px #ffd86b}
-  .hidden{opacity:.5;filter:grayscale(.7)}
-  .haz{background:#2b0f12;border-color:#6a2330}
-  .exposed{outline:2px solid rgba(90,169,255,.55)}
-  .click{cursor:pointer}
-  .sel{outline:2px solid var(--accent)}
+    .p-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+    .tag{font-size:.8rem;color:var(--muted);padding:2px 8px;border:1px solid #223144;border-radius:999px}
 
-  button{background:#142044;border:1px solid #2a3a6a;color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:700}
-  button.primary{background:var(--accent);color:#001332;border:none}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  .rowbtns{display:flex;gap:6px;flex-wrap:wrap}
-  .mini{font-size:12px;color:var(--muted);margin-top:6px}
+    .pyr{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;align-items:end}
+    .col{display:grid;gap:4px}
 
-  #lastplay{font-size:13px;line-height:1.35;background:#0e1322;border:1px solid var(--line);border-radius:8px;padding:8px;min-height:44px}
-  #controls .rowbtns{margin-bottom:8px}
-</style>
+    .card{height:34px;border-radius:10px;border:1px solid #2a3a50;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--ink);opacity:.95;box-shadow:inset 0 0 0 1px #101822}
+    .card.face{background:linear-gradient(180deg,#26364d,#1b2736)}
+    .card.joker{background:linear-gradient(180deg,#2a1b36,#1c0f26)}
+    .card.hidden{filter:blur(2px);opacity:.55}
+    .card.hazard{outline:2px dashed var(--danger)}
+    .card.core{background:linear-gradient(180deg,#1c2a38,#24374d)}
+    .card.exposed{box-shadow:0 0 0 2px rgba(93,210,255,.5) inset}
+
+    .hand{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .hbtn{min-width:42px;padding:8px;border-radius:12px;border:1px solid #2a3a50;background:var(--card-face);color:var(--ink)}
+    .hbtn.joker{background:#2a173a}
+
+    .core{display:flex;gap:8px;align-items:center}
+    .log{max-height:120px;overflow:auto;font-size:.85rem;color:var(--muted);padding:6px;border:1px solid #223144;border-radius:10px;background:#0e141d}
+    .tiny{font-size:.85rem;color:var(--muted)}
+
+    .targeting{border:2px dashed var(--accent)}
+
+    /* Compact tap areas for iPhone */
+    .tap{touch-action:manipulation}
+  </style>
 </head>
 <body>
-<header>
-  <h1>Bomb Diffusal – Pyramid (Minimal)</h1>
-  <div id="top">
-    <span id="turn">Turn: –</span>
-    <span id="deck">Deck: –</span>
-    <span id="reshuffles">Reshuffles left: –</span>
+  <div class="topbar row">
+    <button class="btn primary" id="newGameBtn">New Game</button>
+    <div class="seg" role="tablist" aria-label="Mode">
+      <button class="tap" id="modePassPlay" aria-pressed="true" class="active">Pass&Play</button>
+      <button class="tap" id="modeVsAI">Vs AI</button>
+    </div>
+    <div class="row">
+      <label class="tiny">Bots:</label>
+      <select id="botCount">
+        <option value="3">3</option>
+        <option value="2">2</option>
+        <option value="1">1</option>
+        <option value="0">0</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="endTurnBtn">End Turn</button>
   </div>
-</header>
 
-<main>
-  <section id="table" class="zone">
-    <div id="coreArea" class="zone" style="margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:10px">
-      <strong>Core:</strong>
-      <div id="coreSlot" class="slot"></div>
-      <span class="mini" id="coreTip">Exposed when all players clear their top card.</span>
+  <div class="app">
+    <div class="panel core" id="corePanel">
+      <div class="p-head"><strong>Core</strong><span class="tag" id="coreStatus">Hidden</span><span class="tag" id="reshuffles">Reshuffles: 0/1</span></div>
+      <div class="core">
+        <div id="coreCard" class="card core hidden">?</div>
+        <div class="tiny">Exposes when <strong>any player clears their bottom row (3)</strong>. Joker at Core auto-clears.</div>
+      </div>
     </div>
 
     <div class="players" id="players"></div>
-  </section>
 
-  <aside class="zone">
-    <div id="controls">
-      <div class="rowbtns">
-        <button id="newBtn" class="primary">New Game</button>
-        <button id="endBtn" disabled>End Turn</button>
-      </div>
-      <div class="rowbtns">
-        <button id="playBaseBtn" disabled>Play Base</button>
-        <button id="helpLBtn" disabled>Left Helper</button>
-        <button id="helpRBtn" disabled>Right Helper</button>
-        <button id="resolveBtn" disabled>Resolve</button>
-        <button id="cancelBtn" disabled>Cancel Attempt</button>
-      </div>
-      <div class="mini">
-        Select a **base** (active player), optional **left/right** helpers (neighbors), then **Resolve**.<br/>
-        Target by clicking an **exposed** card in your pyramid (or Core if exposed).
-      </div>
+    <div class="panel">
+      <div class="p-head"><strong>Log</strong></div>
+      <div class="log" id="log"></div>
     </div>
-
-    <h3 style="margin:10px 0 6px">Last Play</h3>
-    <div id="lastplay">–</div>
-  </aside>
-</main>
+  </div>
 
 <script>
-/*** Minimal bomb-pyramid engine ***/
-const SUITS = ["♣","♦","♥","♠"];
-const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-const JOKERS = 2;
+(function(){
+  // ======= Game Constants =======
+  const JACK=11, QUEEN=12, KING=13, JOKER=0;
+  const MAX_HAND=4;
+  const MAX_CASCADE=3;
+  const ALLOW_RESHUFFLES=1; // single reshuffle, per rules
 
-const UI = {
-  playersEl: document.getElementById('players'),
-  coreSlot: document.getElementById('coreSlot'),
-  turn: document.getElementById('turn'),
-  deck: document.getElementById('deck'),
-  resh: document.getElementById('reshuffles'),
-  last: document.getElementById('lastplay'),
+  // ======= State =======
+  let S = null; // global game state
 
-  newBtn: document.getElementById('newBtn'),
-  endBtn: document.getElementById('endBtn'),
-  playBaseBtn: document.getElementById('playBaseBtn'),
-  helpLBtn: document.getElementById('helpLBtn'),
-  helpRBtn: document.getElementById('helpRBtn'),
-  resolveBtn: document.getElementById('resolveBtn'),
-  cancelBtn: document.getElementById('cancelBtn'),
-};
-
-const S = {
-  players: [],     // 4 players
-  deck: [],
-  discard: [],
-  reshuffles: 1,
-  turn: 0,
-  started: false,
-
-  // attempt state
-  base: null, helpers: {L:null, R:null}, target: null, // target: {who:'p'|'core', seat?, row?, col?}
-};
-
-function newCard(s,r){ return {s,r}; }
-function isJoker(c){ return c && c.s==="★" && c.r==="Joker"; }
-function label(c){ return isJoker(c) ? "Joker" : `${c.r}${c.s}`; }
-function val(r){
-  if(r==="A") return 1;
-  if(r==="J") return 11;
-  if(r==="Q") return 12;
-  if(r==="K") return 13;
-  const n = Number(r); return Number.isFinite(n) ? n : null;
-}
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-
-function buildDeck(){
-  const d=[];
-  for(const s of SUITS) for(const r of RANKS) d.push(newCard(s,r));
-  for(let i=0;i<JOKERS;i++) d.push({s:"★", r:"Joker"});
-  return shuffle(d);
-}
-
-function deal(){
-  S.deck = buildDeck();
-  S.discard = [];
-  S.reshuffles = 1;
-  S.turn = 0;
-  S.started = true;
-
-  // players
-  S.players = Array.from({length:4}, (_,i)=>({
-    seat:i,
-    name:`P${i+1}`,
-    hand:[],
-    // pyramid rows: r0=3 (face-up), r1=2 (hidden), r2=1 (hidden)
-    rows:[ [null,null,null], [null,null], [null] ],
-    coreCleared:false,
-  }));
-
-  // build pyramids
-  for(const p of S.players){
-    // bottom row face-up
-    for(let c=0;c<3;c++){
-      p.rows[0][c] = {card: draw(), hidden:false, hazard:false};
-    }
-    // middle hidden
-    for(let c=0;c<2;c++){
-      p.rows[1][c] = {card: draw(), hidden:true, hazard:false};
-    }
-    // top hidden
-    p.rows[2][0] = {card: draw(), hidden:true, hazard:false};
+  function makeDeck(){
+    const d=[]; for(let s=0;s<4;s++){ for(let v=1;v<=13;v++) d.push(v); } d.push(JOKER,JOKER); shuffle(d); return d;
   }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()* (i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
 
-  // shared core (hidden)
-  S.core = {card: draw(), hidden:true};
+  function deep(o){ return JSON.parse(JSON.stringify(o)); }
 
-  // hands (5 each)
-  for(let i=0;i<4;i++) drawTo(i,5);
-
-  resetAttempt();
-  render();
-}
-
-function draw(){
-  if(S.deck.length===0){
-    if(S.reshuffles>0){
-      S.deck = shuffle(S.discard);
-      S.discard = [];
-      S.reshuffles--;
-      renderBars();
-    }else{
-      endGame(false, "Deck exhausted after the single reshuffle.");
-      return null;
-    }
+  // Pyramid helpers (columns 0..2; levels bottom=0, middle=1, top=2 (only col 1 has top))
+  function newPlayer(name, isBot){
+    return {name, isBot, hand:[], slots:[[null,null,null],[null,null,null],[null,null,null]], eliminated:false};
   }
-  return S.deck.pop();
-}
-function drawTo(seat, n=1){
-  const P = S.players[seat];
-  for(let i=0;i<n;i++){
-    const c = draw(); if(!c) return;
-    P.hand.push(c);
-  }
-}
-function ensureRefillIfEmpty(seat){
-  const P = S.players[seat];
-  if(P.hand.length===0){
-    const want = Math.min(5, S.deck.length + S.discard.length + (S.reshuffles?999:0));
-    while(P.hand.length<5){
-      const c = draw(); if(!c) break;
-      P.hand.push(c);
-    }
-  }
-}
-
-function exposedCells(p){
-  // returns list of {row,col,cell} exposed (not hidden & not blocked by above-lock rule)
-  const ex=[];
-  const R=p.rows;
-  // bottom row always exposed if exists
-  for(let c=0;c<3;c++){ const cell=R[0][c]; if(cell){ ex.push({row:0,col:c,cell}); } }
-  // row1: exposed if both beneath are empty
-  for(let c=0;c<2;c++){
-    const belowL=R[0][c], belowR=R[0][c+1];
-    const cell=R[1][c];
-    if(cell && !belowL && !belowR && !cell.hidden){ ex.push({row:1,col:c,cell}); }
-  }
-  // row2: exposed if row1 cleared
-  if(R[2][0] && R[1].every(x=>!x) && !R[2][0].hidden) ex.push({row:2,col:0,cell:R[2][0]});
-  return ex;
-}
-function revealIfExposed(p){
-  const R=p.rows;
-  // flip row1 when supports cleared
-  for(let c=0;c<2;c++){
-    const belowL=R[0][c], belowR=R[0][c+1];
-    if(!belowL && !belowR && R[1][c] && R[1][c].hidden && !isLockedByHazardBelow(p,1,c)){
-      R[1][c].hidden=false;
-    }
-  }
-  // flip row2 when row1 cleared
-  if(R[1].every(x=>!x) && R[2][0] && R[2][0].hidden && !isLockedByHazardBelow(p,2,0)){
-    R[2][0].hidden=false;
-  }
-  // core exposure rule: exposed when ALL players have cleared their top row (row2)
-  if(S.players.every(pp=>!pp.rows[2][0])) S.core.hidden=false;
-}
-function isLockedByHazardBelow(p, row, col){
-  // Hazard Lock: any card above a hazard stays hidden until that hazard is cleared
-  // If row1 cell, check any bottom hazard beneath; if row2, check row1 presence/hazard
-  if(row===1){
-    const hazards = [p.rows[0][col], p.rows[0][col+1]].filter(Boolean).some(c=>c.hazard);
-    return hazards;
-  }
-  if(row===2){
-    const anyHazRow1 = p.rows[1].filter(Boolean).some(c=>c.hazard);
-    return anyHazRow1;
-  }
-  return false;
-}
-
-function clearCell(p,row,col){
-  if(!p.rows[row][col]) return;
-  // if the cleared card is a Joker target → just remove it; logic same
-  const card = p.rows[row][col].card;
-  // discard cleared card
-  S.discard.push(card);
-  p.rows[row][col]=null;
-  revealIfExposed(p);
-}
-
-function resetAttempt(){
-  S.base = null; S.helpers={L:null,R:null}; S.target=null;
-  UI.playBaseBtn.disabled = true;
-  UI.helpLBtn.disabled = true;
-  UI.helpRBtn.disabled = true;
-  UI.resolveBtn.disabled = true;
-  UI.cancelBtn.disabled = true;
-}
-
-function seatLeftOf(seat){ return (seat+3)%4; }
-function seatRightOf(seat){ return (seat+1)%4; }
-
-/*** Matching logic ***/
-function numeric(c){
-  if(!c) return null;
-  if(isJoker(c)) return "J"; // special marker
-  const v = val(c.r);
-  return v ?? null; // faces are null
-}
-function targetValue(t){
-  if(t.who==="core"){
-    return isJoker(S.core.card) ? "J" : val(S.core.card.r);
-  }else{
-    const cell = S.players[t.seat].rows[t.row][t.col];
-    return isJoker(cell.card) ? "J" : val(cell.card.r);
-  }
-}
-function attemptMatches(){
-  if(!S.base || !S.target) return false;
-  const tv = targetValue(S.target);
-  if(tv==="J") return true; // Joker target auto-clears
-  const b = numeric(S.base);
-  if(b==="J") return true;  // Joker base auto-match
-  if(b==null) return false; // faces have no numeric value
-
-  const l = S.helpers.L ? numeric(S.helpers.L) : null;
-  const r = S.helpers.R ? numeric(S.helpers.R) : null;
-
-  // any helper joker makes it auto
-  if(l==="J" || r==="J") return true;
-
-  // Base = Target
-  if(b===tv) return true;
-
-  // Base ± helper = Target
-  if(l!=null && (b+l===tv || b-l===tv)) return true;
-  if(r!=null && (b+r===tv || b-r===tv)) return true;
-
-  // Base ± helper1 ± helper2 = Target (all combos)
-  if(l!=null && r!=null){
-    if(b+l+r===tv) return true;
-    if(b+l-r===tv) return true;
-    if(b-l+r===tv) return true;
-    if(b-l-r===tv) return true;
-  }
-  return false;
-}
-
-function applyCascadeAndClear(){
-  let clears = 0;
-  for(let step=0; step<3; step++){
-    if(!attemptMatches()) break;
-
-    // clear target
-    if(S.target.who==="core"){
-      S.discard.push(S.core.card);
-      S.core = {card:null, hidden:false};
-      clears++;
-      break; // core cleared ends it
-    }else{
-      const P = S.players[S.target.seat];
-      clearCell(P, S.target.row, S.target.col);
-      clears++;
-      // try to retarget automatically to a NEWLY exposed card on same player's pyramid (prefers higher rows)
-      const expo = exposedCells(S.players[S.turn]);
-      if(expo.length){
-        // pick first exposed (topmost priority)
-        expo.sort((a,b)=>a.row-b.row).reverse(); // prefer higher row
-        S.target = {who:"p", seat:S.turn, row:expo[0].row, col:expo[0].col};
-        continue;
-      }else if(!S.core.hidden){
-        S.target = {who:"core"};
-        continue;
-      }else{
-        break;
+  function dealFaceDown(){ return drawCard(); }
+  function drawCard(){
+    if(!S.deck.length){
+      if(S.reshuffles < ALLOW_RESHUFFLES && S.discard.length){
+        log(`Deck exhausted. Reshuffling ...`);
+        shuffle(S.discard); S.deck = S.discard; S.discard = []; S.reshuffles++;
+        updateReshuffles();
+      } else {
+        // no more cards → loss
+        S.loss = true; return null;
       }
     }
+    return S.deck.pop();
   }
-  return clears;
-}
+  function discard(v){ S.discard.push(v); }
 
-/*** Hazard handling ***/
-function addHazardToActive(){
-  const P = S.players[S.turn];
-  // place face-up to the lowest available slot (bottom → middle → top)
-  const order = [
-    {row:0,col:0},{row:0,col:1},{row:0,col:2},
-    {row:1,col:0},{row:1,col:1},
-    {row:2,col:0}
-  ];
-  for(const pos of order){
-    if(!P.rows[pos.row][pos.col]){
-      const c = draw(); if(!c) return;
-      P.rows[pos.row][pos.col] = {card:c, hidden:false, hazard:true};
-      // Hazard Lock: anything above remains/turns hidden; we enforce on revealIfExposed
-      return;
+  function initGame(players=4, bots=3){
+    S = { deck:makeDeck(), discard:[], reshuffles:0, turn:0, current:0, loss:false,
+          players:[], core:{card:null, revealed:false, exposed:false}, mode:"pass" };
+    const names=["P1","P2","P3","P4"];
+    for(let i=0;i<players;i++) S.players.push(newPlayer(names[i], i < bots));
+
+    // Deal pyramids: bottom row face-up
+    for(const P of S.players){
+      for(let col=0;col<3;col++) P.slots[col][0] = {val:dealFaceDown(), visible:true, hazard:false};
+      // middle: col 0 and 1 hidden
+      for(const col of [0,1]) P.slots[col][1] = {val:dealFaceDown(), visible:false, hazard:false};
+      // top: col 1 hidden
+      P.slots[1][2] = {val:dealFaceDown(), visible:false, hazard:false};
+    }
+    // Deal hands
+    for(const P of S.players){ for(let i=0;i<MAX_HAND;i++){ const c=drawCard(); if(c==null){render();return;} P.hand.push(c);} }
+    // Core face-down
+    S.core.card = dealFaceDown();
+
+    logClear();
+    log(`New game started. ${S.players.filter(p=>p.isBot).length} bot(s).`);
+    render();
+    maybeRunAITurn();
+  }
+
+  // ======= Exposure & Targeting =======
+  function supportsEmpty(P, col, lvl){
+    if(lvl===0) return true;
+    if(lvl===1){
+      if(col===0) return P.slots[0][0]===null && P.slots[1][0]===null;
+      if(col===1) return P.slots[1][0]===null && P.slots[2][0]===null;
+    }
+    if(lvl===2){
+      return P.slots[0][1]===null && P.slots[1][1]===null;
+    }
+    return false;
+  }
+  function isExposed(P, col, lvl){
+    const s = P.slots[col][lvl]; if(!s) return false;
+    if(lvl===0) return true; // bottom always structurally exposed
+    // Hazard Lock baked into supportsEmpty requirement (if a support has any card incl. hazard, not empty)
+    return supportsEmpty(P,col,lvl);
+  }
+  function exposedPositions(P){
+    const out=[];
+    for(let col=0;col<3;col++) for(let lvl=0;lvl<3;lvl++) if(P.slots[col][lvl] && isExposed(P,col,lvl)) out.push([col,lvl]);
+    return out;
+  }
+  function bottomRowCleared(P){ return P.slots[0][0]==null && P.slots[1][0]==null && P.slots[2][0]==null; }
+
+  function checkCoreExposure(){
+    if(!S.core.exposed){
+      for(const P of S.players){ if(bottomRowCleared(P)){ S.core.exposed=true; S.core.revealed=true; log(`Core is now exposed!`); break; } }
+      if(S.core.exposed && S.core.card===JOKER){ log(`Core is Joker → auto-clear. You win!`); S.core.card=null; }
     }
   }
-  // no room → (theoretically should not happen since we always fill empty slots) — treat as fail-safe
-}
 
-/*** Turn flow ***/
-function passTurn(){
-  // active draws 1 after attempt (success or fail)
-  drawTo(S.turn,1);
+  // ======= Turn & Play =======
+  function currentPlayer(){ return S.players[S.current]; }
 
-  // any helper who hit 0 already refilled during selection; also check all players
-  for(let i=0;i<4;i++){ ensureRefillIfEmpty(i); }
-
-  // win/lose checks
-  if(!S.core.card){ endGame(true, "Core cleared! You win!"); return; }
-  if(!S.started) return; // ended due to deck loss
-
-  // next
-  S.turn = (S.turn+1)%4;
-  resetAttempt();
-  render();
-}
-
-function endGame(win, msg){
-  S.started=false;
-  UI.endBtn.disabled = true;
-  UI.playBaseBtn.disabled = true;
-  UI.helpLBtn.disabled = true;
-  UI.helpRBtn.disabled = true;
-  UI.resolveBtn.disabled = true;
-  UI.cancelBtn.disabled = true;
-  UI.last.textContent = (win? "🏆 " : "💥 ") + msg;
-}
-
-/*** UI selection & actions ***/
-let selectedCard = null; // {seat, idx, kind:'hand'}
-function selectCard(seat, idx){
-  if(!S.started) return;
-  selectedCard = {seat, idx, kind:'hand'};
-  render(); // to show selection outline
-}
-function selectTarget(seatRowColOrCore){
-  if(!S.started) return;
-  // Only active player can set target; target must be exposed in their pyramid or the core (if exposed)
-  if(seatRowColOrCore === 'core'){
-    if(S.core.hidden) return;
-    S.target = {who:"core"};
-  }else{
-    const {seat,row,col} = seatRowColOrCore;
-    if(seat!==S.turn) return;
-    const cell = S.players[seat].rows[row][col];
-    if(!cell || cell.hidden) return;
-    S.target = {who:"p", seat,row,col};
-  }
-  render();
-}
-
-function playBase(){
-  if(!selectedCard) return;
-  if(selectedCard.seat !== S.turn) return; // base must be active player's card
-  const P = S.players[S.turn];
-  S.base = P.hand.splice(selectedCard.idx,1)[0];
-  selectedCard = null;
-  // enable helpers if neighbors
-  UI.helpLBtn.disabled = false;
-  UI.helpRBtn.disabled = false;
-  UI.resolveBtn.disabled = false;
-  render();
-}
-function playHelper(which){
-  const seat = which==='L' ? seatLeftOf(S.turn) : seatRightOf(S.turn);
-  if(!selectedCard || selectedCard.seat !== seat) return;
-  const P = S.players[seat];
-  const card = P.hand.splice(selectedCard.idx,1)[0];
-  S.helpers[which] = card;
-  selectedCard=null;
-  ensureRefillIfEmpty(seat);
-  render();
-}
-function cancelAttempt(){
-  // return played cards (base + helpers) to respective hands (top)
-  if(S.base) S.players[S.turn].hand.push(S.base);
-  if(S.helpers.L){ S.players[seatLeftOf(S.turn)].hand.push(S.helpers.L); }
-  if(S.helpers.R){ S.players[seatRightOf(S.turn)].hand.push(S.helpers.R); }
-  resetAttempt();
-  selectedCard=null;
-  render();
-}
-
-function resolveAttempt(){
-  if(!S.base || !S.target){ UI.last.textContent="Select a base and a target."; return; }
-
-  const before = `${S.players[S.turn].name}: Base ${label(S.base)}`
-    + (S.helpers.L? ` + L ${label(S.helpers.L)}`:"")
-    + (S.helpers.R? ` + R ${label(S.helpers.R)}`:"")
-    + ` → Target ${S.target.who==="core" ? "Core" : `r${S.target.row+1}c${S.target.col+1}`}`;
-
-  if(!attemptMatches()){
-    // fail → hazard to active, draw 1 for active (via passTurn), log last play
-    addHazardToActive();
-    UI.last.textContent = `❌ ${before} → Fail. Hazard added to ${S.players[S.turn].name}.`;
-    // discard played (helpers used still go to discard even on fail)
-    if(S.base) S.discard.push(S.base);
-    if(S.helpers.L) S.discard.push(S.helpers.L);
-    if(S.helpers.R) S.discard.push(S.helpers.R);
-    resetAttempt();
-    passTurn();
-    return;
+  function hasMatch(hand, val){ return val===JOKER || hand.includes(val) || hand.includes(JOKER); }
+  function pickBaseFor(hand, val){
+    if(val===JOKER){ const pool=hand.filter(c=>c!==JOKER); return pool.length? Math.min(...pool) : JOKER; }
+    if(hand.includes(val)) return val; if(hand.includes(JOKER)) return JOKER; return null;
   }
 
-  // success → cascade up to 3 clears
-  const clears = applyCascadeAndClear();
-
-  // discard played cards after resolution
-  if(S.base) S.discard.push(S.base);
-  if(S.helpers.L) S.discard.push(S.helpers.L);
-  if(S.helpers.R) S.discard.push(S.helpers.R);
-
-  UI.last.textContent = `✅ ${before} → Cleared ${clears} card${clears===1?"":"s"}.`;
-  resetAttempt();
-  passTurn();
-}
-
-/*** Render ***/
-function renderBars(){
-  UI.turn.textContent = S.started ? `Turn: ${S.players[S.turn].name}` : "Turn: —";
-  UI.deck.textContent = `Deck: ${S.deck.length}`;
-  UI.resh.textContent = `Reshuffles left: ${S.reshuffles}`;
-}
-function cardNode(c, seat, idx){
-  const d = document.createElement('div');
-  d.className = 'card' + (isJoker(c)?' joker':'');
-  d.textContent = isJoker(c) ? 'Joker' : `${c.r}${c.s}`;
-  d.classList.add('click');
-  if(selectedCard && selectedCard.seat===seat && selectedCard.idx===idx) d.classList.add('sel');
-  d.addEventListener('click', ()=>selectCard(seat, idx));
-  return d;
-}
-function cellNode(pidx,row,col){
-  const cell = S.players[pidx].rows[row][col];
-  const el = document.createElement('div');
-  if(!cell){ el.className='slot'; return el; }
-  const exposed = !cell.hidden;
-  const d = document.createElement('div');
-  d.className = 'card' + (cell.hazard?' haz':'') + (exposed?' exposed':' hidden');
-  d.textContent = exposed ? (isJoker(cell.card)? 'Joker' : `${cell.card.r}${cell.card.s}`) : '🂠';
-  if(exposed && pidx===S.turn){
-    d.classList.add('click');
-    d.addEventListener('click', ()=>selectTarget({seat:pidx,row,col}));
+  function pathNext(col,lvl){
+    if(col===0) return (lvl===0)? [0,1] : null;
+    if(col===2) return null;
+    if(col===1){ if(lvl===0) return [1,1]; if(lvl===1) return [1,2]; return null; }
   }
-  el.appendChild(d);
-  return el;
-}
-function renderPlayer(p){
-  const box = document.createElement('div');
-  box.className = 'player' + (S.turn===p.seat && S.started ? ' active':'');
-  const head = document.createElement('div');
-  head.className='ph';
-  const nm = document.createElement('span'); nm.className='name'; nm.textContent=p.name;
-  const tg = document.createElement('span'); tg.className='tag'; tg.textContent=`Hand: ${p.hand.length}`;
-  head.appendChild(nm); head.appendChild(tg);
-  box.appendChild(head);
 
-  // Pyramid
-  const pyr = document.createElement('div'); pyr.className='pyramid';
-  const r2 = document.createElement('div'); r2.className='row'; r2.appendChild(cellNode(p.seat,2,0)); pyr.appendChild(r2);
-  const r1 = document.createElement('div'); r1.className='row'; for(let c=0;c<2;c++) r1.appendChild(cellNode(p.seat,1,c)); pyr.appendChild(r1);
-  const r0 = document.createElement('div'); r0.className='row'; for(let c=0;c<3;c++) r0.appendChild(cellNode(p.seat,0,c)); pyr.appendChild(r0);
-  box.appendChild(pyr);
-
-  // Hand (visible – co-op)
-  const hand = document.createElement('div'); hand.className='hand';
-  p.hand.forEach((c,i)=>hand.appendChild(cardNode(c,p.seat,i)));
-  box.appendChild(hand);
-
-  return box;
-}
-function renderCore(){
-  UI.coreSlot.innerHTML='';
-  if(!S.core.card){
-    const d=document.createElement('div'); d.className='card'; d.textContent='Cleared'; UI.coreSlot.appendChild(d); return;
+  function clearAt(P, col,lvl, base){
+    let clears=0, royals=[];
+    for(let step=0; step<MAX_CASCADE; step++){
+      const s = P.slots[col]?.[lvl]; if(!s) break;
+      if(!isExposed(P,col,lvl)) break;
+      const tv = s.val; const match = (tv===JOKER) || (base===JOKER) || (base===tv);
+      if(!match) break;
+      // clear
+      P.slots[col][lvl]=null; discard(tv); clears++;
+      if(tv===JACK||tv===QUEEN||tv===KING) royals.push(tv);
+      // after removal, maybe core exposure (if my bottom row now empty)
+      checkCoreExposure();
+      // move to next in column
+      const nxt = pathNext(col,lvl); if(!nxt) break; col=nxt[0]; lvl=nxt[1];
+    }
+    return {clears, royals};
   }
-  const exposed = !S.core.hidden;
-  const d = document.createElement('div');
-  d.className = 'card' + (exposed?' exposed':' hidden') + (isJoker(S.core.card)?' joker':'');
-  d.textContent = exposed ? (isJoker(S.core.card)?'Joker': `${S.core.card.r}${S.core.card.s}`) : '🂠';
-  if(exposed){
-    d.classList.add('click');
-    d.addEventListener('click', ()=>selectTarget('core'));
+
+  function applyJack(me){
+    const nei = S.players[(S.current+1)%S.players.length];
+    if(!me.hand.length && !nei.hand.length) return;
+    // give least-useful
+    if(me.hand.length){
+      const exVals = new Set(exposedPositions(me).map(([c,l])=>me.slots[c][l].val));
+      const score = c => c===JOKER?2 : exVals.has(c)?1:0;
+      me.hand.sort((a,b)=>score(a)-score(b));
+      const give = me.hand.shift();
+      if(nei.hand.length<MAX_HAND) nei.hand.push(give); else me.hand.unshift(give);
+    }
+    if(nei.hand.length && me.hand.length<MAX_HAND){ me.hand.push(nei.hand.splice((Math.random()*nei.hand.length)|0,1)[0]); }
   }
-  UI.coreSlot.appendChild(d);
-}
-function render(){
-  renderBars();
-  renderCore();
+  function applyQueen(me){
+    // reveal my hidden pref: (0,1)->(1,1)->(1,2), else teammate, else core
+    const order=[[0,1],[1,1],[1,2]];
+    let done=false;
+    for(const [c,l] of order){ const s=me.slots[c][l]; if(s && !s.visible){ s.visible=true; done=true; break; } }
+    if(done) return;
+    for(let i=1;i<S.players.length;i++){
+      const P = S.players[(S.current+i)%S.players.length];
+      for(const [c,l] of order){ const s=P.slots[c][l]; if(s && !s.visible){ s.visible=true; done=true; break; } }
+      if(done) break;
+    }
+    if(!done && !S.core.revealed){ S.core.revealed=true; }
+  }
+  function applyKing(me){ for(let i=0;i<2;i++){ if(me.hand.length>=MAX_HAND) break; const c=drawCard(); if(c==null)return; me.hand.push(c);} }
 
-  UI.playersEl.innerHTML='';
-  S.players.forEach(p=>UI.playersEl.appendChild(renderPlayer(p)));
+  function endOfAttemptDraw(me){ if(me.hand.length<MAX_HAND){ const c=drawCard(); if(c==null)return; me.hand.push(c);} }
 
-  // enable/disable controls
-  const canAct = S.started;
-  UI.endBtn.disabled = !canAct;
-  UI.playBaseBtn.disabled = !(canAct && selectedCard && selectedCard.seat===S.turn);
-  UI.helpLBtn.disabled = !(canAct && selectedCard && selectedCard.seat===seatLeftOf(S.turn));
-  UI.helpRBtn.disabled = !(canAct && selectedCard && selectedCard.seat===seatRightOf(S.turn));
-  UI.resolveBtn.disabled = !(canAct && S.base && S.target);
-  UI.cancelBtn.disabled = !(canAct && (S.base || S.helpers.L || S.helpers.R));
+  function placeHazard(me){
+    const c=drawCard(); if(c==null)return;
+    const order=[[0,0],[1,0],[2,0],[0,1],[1,1],[1,2]];
+    for(const [col,lvl] of order){ if(me.slots[col][lvl]==null){ me.slots[col][lvl]={val:c,visible:true,hazard:true}; return; } }
+    discard(c); // fallback
+  }
 
-  // highlight selected
-  // (handled in cardNode)
-}
+  function attemptPlay(target){
+    const me = currentPlayer();
+    if(S.loss || S.core.card===null) return;
 
-/*** Wire buttons ***/
-UI.newBtn.addEventListener('click', deal);
-UI.endBtn.addEventListener('click', ()=>{ resetAttempt(); selectedCard=null; passTurn(); });
-UI.playBaseBtn.addEventListener('click', playBase);
-UI.helpLBtn.addEventListener('click', ()=>playHelper('L'));
-UI.helpRBtn.addEventListener('click', ()=>playHelper('R'));
-UI.resolveBtn.addEventListener('click', resolveAttempt);
-UI.cancelBtn.addEventListener('click', cancelAttempt);
+    let tType=target.type; // 'pyr' or 'core'
+    let base; let tv;
 
-// init
-render();
+    if(tType==='core'){
+      if(!(S.core.exposed && S.core.card!=null)){ toast('Core not targetable'); return; }
+      tv=S.core.card; base = pickBaseFor(me.hand, tv) ?? me.hand[0];
+      // play base
+      me.hand.splice(me.hand.indexOf(base),1); discard(base);
+      const match = (tv===JOKER)||(base===JOKER)||(base===tv);
+      if(match){ log(`${me.name} clears CORE with ${show(base)}.`); discard(tv); S.core.card=null; render(); checkEnd(); return; }
+      else { log(`${me.name} failed on CORE with ${show(base)} → Hazard.`); placeHazard(me); endOfAttemptDraw(me); nextTurn(); return; }
+    }
+
+    // Pyramid target
+    const {pid,col,lvl} = target; const P = S.players[pid];
+    if(pid!==S.current){ toast('You can only target your own exposed cards.'); return; }
+    if(!isExposed(P,col,lvl)){ toast('Target not exposed'); return; }
+    tv = P.slots[col][lvl].val; base = pickBaseFor(me.hand, tv) ?? me.hand[0];
+    me.hand.splice(me.hand.indexOf(base),1); discard(base);
+
+    const match = (tv===JOKER)||(base===JOKER)||(base===tv);
+    if(!match){ log(`${me.name} failed vs ${lab(col,lvl)} (${show(tv)}) with ${show(base)} → Hazard.`); placeHazard(me); endOfAttemptDraw(me); nextTurn(); return; }
+
+    const {clears, royals} = clearAt(P,col,lvl,base);
+    log(`${me.name} cleared ${clears} card(s) using ${show(base)}.`);
+
+    // Royals in order
+    for(const r of royals){
+      if(r===JACK){ log(`Jack effect: swap 1 with right neighbor.`); applyJack(me); }
+      if(r===QUEEN){ log(`Queen effect: reveal 1 hidden.`); applyQueen(me); }
+      if(r===KING){ log(`King effect: draw 2.`); applyKing(me); }
+    }
+
+    // Auto-clear core if Joker and just exposed (handled in checkCoreExposure within clearAt)
+
+    endOfAttemptDraw(me);
+    nextTurn();
+  }
+
+  function nextTurn(){ if(S.loss){ render(); return; } checkEnd(); if(S.core.card===null || S.loss) { render(); return; } S.current=(S.current+1)%S.players.length; S.turn++; render(); maybeRunAITurn(); }
+
+  function checkEnd(){
+    if(S.core.card===null){ toast('💥 Diffused! You win.'); }
+    if(S.loss){ toast('Deck exhausted. 💣 Boom – you lose.'); }
+  }
+
+  // ======= Simple AI (greedy exact-first) =======
+  function aiChooseTarget(pid){
+    const me = S.players[pid];
+    // exposed in my pyramid
+    const ex = exposedPositions(me);
+    const hazards = ex.filter(([c,l])=>me.slots[c][l].hazard);
+    const normals = ex.filter(([c,l])=>!me.slots[c][l].hazard);
+    const hand = me.hand;
+
+    const canExact = (t)=>{ const v=me.slots[t[0]][t[1]].val; return v===JOKER || hand.includes(v); };
+    const canMatch = (t)=>{ const v=me.slots[t[0]][t[1]].val; return hasMatch(hand,v); };
+
+    // 1) core exact
+    if(S.core.exposed && S.core.card!=null){ if(S.core.card===JOKER || hand.includes(S.core.card)) return {type:'core'}; }
+    // 2) hazard exact
+    const eh = hazards.filter(canExact).sort((a,b)=>a[1]-b[1]); if(eh.length) return {type:'pyr',pid:pid,col:eh[0][0],lvl:eh[0][1]};
+    // 3) normal exact
+    const en = normals.filter(canExact).sort((a,b)=>a[1]-b[1]); if(en.length) return {type:'pyr',pid:pid,col:en[0][0],lvl:en[0][1]};
+    // 4) core via joker
+    if(S.core.exposed && S.core.card!=null && hasMatch(hand,S.core.card)) return {type:'core'};
+    // 5) hazard via joker
+    const hj = hazards.filter(canMatch).sort((a,b)=>a[1]-b[1]); if(hj.length) return {type:'pyr',pid:pid,col:hj[0][0],lvl:hj[0][1]};
+    // 6) normal via joker
+    const nj = normals.filter(canMatch).sort((a,b)=>a[1]-b[1]); if(nj.length) return {type:'pyr',pid:pid,col:nj[0][0],lvl:nj[0][1]};
+    // 7) fallback lowest exposed
+    const all = ex.sort((a,b)=>a[1]-b[1]); if(all.length) return {type:'pyr',pid:pid,col:all[0][0],lvl:all[0][1]};
+    // else if core exposed but no match, still try core (will fail)
+    if(S.core.exposed && S.core.card!=null) return {type:'core'};
+    return null;
+  }
+
+  function maybeRunAITurn(){
+    const P = currentPlayer();
+    if(!P.isBot || S.loss || S.core.card===null) return;
+    // small delay for UX
+    setTimeout(()=>{
+      const target = aiChooseTarget(S.current) || {type:'pyr',pid:S.current,col:1,lvl:0};
+      attemptPlay(target);
+    }, 300);
+  }
+
+  // ======= UI =======
+  const elPlayers = document.getElementById('players');
+  const elLog = document.getElementById('log');
+  const elCoreCard = document.getElementById('coreCard');
+  const elCoreStatus = document.getElementById('coreStatus');
+  const elReshuffles = document.getElementById('reshuffles');
+
+  function updateReshuffles(){ elReshuffles.textContent = `Reshuffles: ${S.reshuffles}/${ALLOW_RESHUFFLES}`; }
+
+  function show(v){ if(v===JOKER) return '🃏'; if(v===1) return 'A'; if(v===11) return 'J'; if(v===12) return 'Q'; if(v===13) return 'K'; return String(v); }
+  function lab(col,lvl){ return `C${col}L${lvl}`; }
+
+  function render(){
+    // Core
+    if(S.core.card==null){ elCoreCard.textContent='✓'; elCoreCard.classList.remove('hidden'); elCoreStatus.textContent='Cleared'; }
+    else if(S.core.exposed){ elCoreCard.textContent= show(S.core.card); elCoreCard.classList.remove('hidden'); elCoreCard.classList.add('exposed'); elCoreStatus.textContent='Exposed'; }
+    else { elCoreCard.textContent='?'; elCoreCard.classList.add('hidden'); elCoreCard.classList.remove('exposed'); elCoreStatus.textContent='Hidden'; }
+    updateReshuffles();
+
+    // Players
+    elPlayers.innerHTML='';
+    S.players.forEach((P,idx)=>{
+      const panel = document.createElement('div'); panel.className='panel'+(idx===S.current?' current':'');
+      const head = document.createElement('div'); head.className='p-head';
+      head.innerHTML = `<strong>${P.name} ${P.isBot?'🤖':''}</strong><span class="tag">${idx===S.current?'Your turn':''}</span>`;
+      panel.appendChild(head);
+
+      // Pyramid grid
+      const pyr = document.createElement('div'); pyr.className='pyr';
+      for(let col=0;col<3;col++){
+        const colEl=document.createElement('div'); colEl.className='col';
+        // stack from bottom to top visually
+        for(let lvl=2; lvl>=0; lvl--){
+          const s = P.slots[col][lvl];
+          if(!s){ const spacer=document.createElement('div'); spacer.style.height='6px'; colEl.appendChild(spacer); continue; }
+          const card=document.createElement('button'); card.className='card tap';
+          let classes=['card']; if(s.hazard) classes.push('hazard'); if(!s.visible) classes.push('hidden');
+          const isFace = (s.val===JACK||s.val===QUEEN||s.val===KING);
+          if(isFace) classes.push('face'); if(s.val===JOKER) classes.push('joker');
+          if(isExposed(P,col,lvl)) classes.push('exposed');
+          card.className = classes.join(' ');
+          card.textContent = s.visible? show(s.val): '■';
+          if(idx===S.current && !P.isBot && isExposed(P,col,lvl)){
+            card.addEventListener('click',()=>attemptPlay({type:'pyr',pid:idx,col,lvl}));
+          }
+          colEl.appendChild(card);
+        }
+        pyr.appendChild(colEl);
+      }
+      panel.appendChild(pyr);
+
+      // Hand (only show for current player in pass&play; always show for humans in vs-AI)
+      const showHand = (S.mode==='ai') ? (!P.isBot) : (idx===S.current && !P.isBot);
+      const handDiv=document.createElement('div'); handDiv.className='hand';
+      if(showHand){
+        P.hand.forEach((v,i)=>{
+          const hb=document.createElement('button'); hb.className='hbtn tap'+(v===JOKER?' joker':''); hb.textContent=show(v);
+          hb.disabled=true; // cards are auto-chosen when you tap a target
+          handDiv.appendChild(hb);
+        });
+      } else {
+        const t=document.createElement('div'); t.className='tiny'; t.textContent = P.isBot? 'Bot' : (idx===S.current? 'Your hand (hidden)':'Hidden');
+        handDiv.appendChild(t);
+      }
+      panel.appendChild(handDiv);
+
+      elPlayers.appendChild(panel);
+    });
+  }
+
+  // ======= Log & Toast =======
+  function log(msg){ const time = String(S.turn).padStart(2,'0'); elLog.innerHTML += `[${time}] ${msg}<br/>`; elLog.scrollTop=elLog.scrollHeight; }
+  function logClear(){ elLog.innerHTML=''; }
+  function toast(msg){ log(msg); }
+
+  // ======= Controls =======
+  const newGameBtn=document.getElementById('newGameBtn');
+  const modePassPlay=document.getElementById('modePassPlay');
+  const modeVsAI=document.getElementById('modeVsAI');
+  const botCountSel=document.getElementById('botCount');
+  const endTurnBtn=document.getElementById('endTurnBtn');
+
+  newGameBtn.addEventListener('click', ()=>{ initGame(4, parseInt(botCountSel.value,10)); });
+  modePassPlay.addEventListener('click', ()=>{ S && (S.mode='pass'); modePassPlay.classList.add('active'); modeVsAI.classList.remove('active'); render(); });
+  modeVsAI.addEventListener('click', ()=>{ S && (S.mode='ai'); modeVsAI.classList.add('active'); modePassPlay.classList.remove('active'); render(); });
+  endTurnBtn.addEventListener('click', ()=>{ if(currentPlayer()?.isBot) return; // human only
+    // Allow skipping your action (for testing). Apply fail consequence: hazard + draw
+    attemptPlay({type:'pyr',pid:S.current,col:1,lvl:0}); // best-effort fallback – will validate & fail if not exposed
+  });
+
+  // Start a default game
+  initGame(4,3);
+})();
 </script>
 </body>
 </html>
