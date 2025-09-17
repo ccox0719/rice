@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bomb Diffusal — Pyramid (Lite, Last-Play Only)</title>
+<title>Bomb Diffusal — Pyramid (Cascade + Hazard Lock, Lite)</title>
 <style>
   :root{
     --bg:#0b0f19; --panel:#121826; --ink:#e8edff; --muted:#a8b6e8;
@@ -32,7 +32,7 @@
   .player h2{margin:0 0 8px;font-size:14px;color:var(--muted)}
   .me{outline:2px solid rgba(105,167,255,.35)}
   .note{font-size:12px;color:var(--muted);margin-top:6px}
-  .hand,.staging{display:flex;gap:6px;flex-wrap:wrap}
+  .hand{display:flex;gap:6px;flex-wrap:wrap}
   .pyramid{display:grid;gap:6px}
   .py-row{display:flex;gap:6px;justify-content:center}
   .slot{width:42px;height:58px;border:1px dashed #31406f;border-radius:8px;display:flex;align-items:center;justify-content:center}
@@ -47,17 +47,21 @@
   .card.s-D{color:#7fd1ff} .card.s-S{color:#d0c6ff}
   .card.A{border-color:#ffd86b;box-shadow:inset 0 0 0 1px #ffd86b}
   .card.face{border-color:#ff9f6b}
+  .card.hazard{background:linear-gradient(180deg,#2a0f14,#19080b);border-color:#7a2a37}
   .dim{opacity:.5;filter:grayscale(.7)}
   .clickable{cursor:pointer}
   .selected{outline:2px solid var(--accent)}
   aside .zone{position:sticky;top:12px}
   #lastPlay{font-size:13px;line-height:1.35}
   #hint{min-height:18px;color:var(--muted);margin-top:6px}
+  /* small visual pop for cascades */
+  .pop{animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(.95)}70%{transform:scale(1.03)}100%{transform:scale(1)}}
 </style>
 </head>
 <body>
 <header>
-  <h1>Bomb Diffusal — Pyramid (Lite, Last-Play Only)</h1>
+  <h1>Bomb Diffusal — Pyramid (Cascade + Hazard Lock, Lite)</h1>
   <div class="bar">
     <span id="turnSpan"></span>
     <span id="deckSpan"></span>
@@ -86,11 +90,11 @@
         <button id="skipBtn" disabled>Skip</button>
       </div>
       <div class="chips">
-        <span class="chip">Attempt cards used: <strong id="attemptCount">0/3</strong></span>
-        <span class="chip">Helpers allowed: <strong>Left & Right only</strong></span>
+        <span class="chip">Cascade: <strong>up to 3 clears</strong></span>
+        <span class="chip">Hazards: <strong>face-up + lock</strong></span>
         <span class="chip">Loss: <strong>Deck exhausted (1 reshuffle)</strong></span>
       </div>
-      <div id="hint">You’re Player 1. Select a card, then press “Play Selected”. Bots will add helpers if needed.</div>
+      <div id="hint">You’re Player 1. Select a card, then “Play Selected”. Bots auto-help if needed.</div>
     </div>
 
     <!-- Player 1 always visible -->
@@ -112,7 +116,7 @@
 </main>
 
 <script>
-/* ======= Minimal-state helpers (no long logs kept) ======= */
+/* ======= Minimal-state helpers ======= */
 let ended = false;
 const GL={C:"♣",D:"♦",H:"♥",S:"♠"};
 const SUITS=["C","D","H","S"];
@@ -132,14 +136,13 @@ const S={
   deck:[], discard:[],
   players:[], // {seat,name,isHuman,hand:[],pyr:{rows}}
   turn:0, speed:350, autoP1:false,
-  attempt:[], contributed:new Set(), // compact chain
   reshufflesLeft:1, started:false,
   core:{card:null, exposed:false, cleared:false},
-  lastPlay:"—"
+  lastPlay:"—", // compact memory
 };
 function newPlayer(i,isHuman){return{seat:i,name:isHuman?"You":"Bot "+(i+1),isHuman,hand:[],pyr:null}}
 
-/* ======= Pyramid build (bottom row face-up only) ======= */
+/* ======= Pyramid build (bottom row face-up; hazards lock) ======= */
 function buildPyramid(D){
   const rows=[[],[],[]];
   for(let i=0;i<3;i++) rows[0].push({card:D.pop(),hidden:false,hazard:false});
@@ -149,18 +152,23 @@ function buildPyramid(D){
 }
 function exposedSlots(p){
   const R=p.pyr.rows, out=[];
+  // bottom row: any present and not hidden
   for(let c=0;c<3;c++) if(R[0][c] && !R[0][c].hidden) out.push({row:0,col:c});
+  // middle row: only if both supports are empty (hazards count as not empty → lock)
   for(let c=0;c<2;c++){
     if(R[1][c] && !R[1][c].hidden && !R[0][c] && !R[0][c+1]) out.push({row:1,col:c});
   }
+  // top: only if middle both empty
   if(R[2][0] && !R[2][0].hidden && !R[1][0] && !R[1][1]) out.push({row:2,col:0});
   return out;
 }
 function flipExposures(p){
   const R=p.pyr.rows;
+  // Reveal middle only if bottoms are empty (hazard lock enforced because hazards occupy the bottom cells)
   for(let c=0;c<2;c++){
     if(R[1][c] && R[1][c].hidden && !R[0][c] && !R[0][c+1]) R[1][c].hidden=false;
   }
+  // Reveal top only if middle empty
   if(R[2][0] && R[2][0].hidden && !R[1][0] && !R[1][1]) R[2][0].hidden=false;
 }
 
@@ -174,7 +182,7 @@ function startGame(){
   S.core.card=S.deck.pop(); S.core.exposed=false; S.core.cleared=false;
   // hands (5)
   for(const p of S.players){ for(let i=0;i<5;i++) drawOne(p.seat); }
-  S.turn=0; S.attempt.length=0; S.contributed.clear();
+  S.turn=0;
   renderAll();
   if(!S.players[0].isHuman || S.autoP1) runTurn();
 }
@@ -196,18 +204,49 @@ function drawUpTo5IfEmpty(seat){
   return true;
 }
 
-/* ======= Attempt rules ======= */
-function targetRanksForActive(){
-  const P=S.players[S.turn];
-  const slots=exposedSlots(P).map(pos=>P.pyr.rows[pos.row][pos.col].card);
-  const coreOK = S.core.exposed && S.core.card;
-  const ranks = slots.map(c=>c.r);
-  if(coreOK){ ranks.push(S.core.card.r); }
-  return ranks;
+/* ======= Math rules ======= */
+function isJoker(c){ return c && c.r==="Joker"; }
+function isNumeric(c){ return c && !isJoker(c) && !isFace(c.r); }
+function isMatch(base,h1,h2,targetVal){
+  // Jokers auto-win
+  if(isJoker(base) || isJoker(h1) || isJoker(h2)) return true;
+  if(targetVal==null) return true; // Joker target
+  if(isFace(base.r)) return false;
+  const b=RVAL(base.r);
+  const equalsTarget = v => v===targetVal;
+
+  // 0 helper
+  if(!h1 && !h2) return equalsTarget(b);
+
+  // 1 helper
+  if(h1 && !h2){
+    if(isNumeric(h1)){
+      const a=RVAL(h1.r);
+      return equalsTarget(b+a) || equalsTarget(b-a);
+    }else{
+      // face helper doesn't contribute numeric; without Joker it's no help
+      return false;
+    }
+  }
+
+  // 2 helpers
+  if(h1 && h2){
+    if(isNumeric(h1) && isNumeric(h2)){
+      const a=RVAL(h1.r), c2=RVAL(h2.r);
+      return [b+a+c2,b+a-c2,b-a+c2,b-a-c2].some(equalsTarget);
+    }else{
+      return false;
+    }
+  }
+  return false;
 }
+
+/* ======= Bot logic (first solvable: 0→1→2 helpers; core first) ======= */
 function seatLeftRight(seat){ return [(seat+3)%4,(seat+1)%4]; }
+
 function chooseBotPlay(seat){
   const P=S.players[seat]; const [L,R]=seatLeftRight(seat);
+
   const trySolve=(base,targetVal)=>{
     // 0 helpers
     if(isMatch(base,null,null,targetVal)) return {helpers:[]};
@@ -232,134 +271,133 @@ function chooseBotPlay(seat){
     }
     return null;
   };
-  // Core first if exposed
-  const tryList=[];
+
+  const targetList=[];
   if(S.core.exposed && S.core.card){
-    tryList.push({where:"core", r:S.core.card.r, pos:null});
+    targetList.push({where:"core", pos:null, val:isJoker(S.core.card)?null:RVAL(S.core.card.r)});
   }
-  // Then own exposed
   const xs=exposedSlots(P);
   for(const pos of xs){
     const tc=P.pyr.rows[pos.row][pos.col].card;
-    tryList.push({where:"pyr", r:tc.r, pos});
+    targetList.push({where:"pyr", pos, val:isJoker(tc)?null:RVAL(tc.r)});
   }
-  // scan base choices
+
   for(let bi=0; bi<P.hand.length; bi++){
     const base=P.hand[bi];
-    for(const t of tryList){
-      const targetVal = (t.r==="Joker") ? null : RVAL(t.r);
-      const sol=trySolve(base,targetVal);
-      if(sol){ return {bi,where:t.where,pos:t.pos,helpers:sol.helpers}; }
+    for(const t of targetList){
+      const sol=trySolve(base, t.val);
+      if(sol){ return {bi, where:t.where, pos:t.pos, helpers:sol.helpers}; }
     }
   }
-  // no solvable → dump card (first)
-  if(P.hand.length) return {bi:0,where:null,pos:null,helpers:[]};
+  // no solvable → dump first
+  if(P.hand.length) return {bi:0, where:null, pos:null, helpers:[]};
   return null;
 }
-function isJoker(c){ return c && c.r==="Joker"; }
-function isNumeric(c){ return c && !isJoker(c) && !isFace(c.r); }
-function isMatch(base,h1,h2,targetVal){
-  // Jokers auto-win
-  if(isJoker(base) || isJoker(h1) || isJoker(h2)) return true;
-  if(targetVal==null) return true; // Joker target
-  if(isFace(base.r)) return false;
-  const b=RVAL(base.r);
-  const addPoss=(vals)=>{
-    const set=new Set(vals);
-    return set.has(targetVal);
-  };
-  // 0 helper
-  if(h1==null && h2==null) return addPoss([b]);
-  // 1 helper
-  if(h1 && !h2){
-    if(isNumeric(h1)){
-      const a=RVAL(h1.r);
-      return addPoss([b+a,b-a]);
-    }else return true; // helper was face (ignored) → doesn’t help; but if it were Joker we’d have returned earlier
-  }
-  // 2 helpers
-  if(h1 && h2){
-    let vec=[];
-    const vs=[];
-    if(isNumeric(h1)) vs.push(RVAL(h1.r)); else return true; // joker caught earlier; faces don’t add numeric, but allow? We keep conservative: if face and no joker, it doesn’t help.
-    if(isNumeric(h2)) vs.push(RVAL(h2.r)); else return true;
-    const [a,b2]=vs;
-    vec=[b+a+b2,b+a-b2,b-a+b2,b-a-b2];
-    return addPoss(vec);
-  }
-  return false;
-}
 
+/* ======= Attempt + Cascade Clear ======= */
 function applyAttempt(plan){
   const P=S.players[S.turn];
   const base=P.hand.splice(plan.bi,1)[0]; S.discard.push(base);
-  // take helpers out (store then remove)
-  const taken=[];
+
+  // Take helpers and discard them now (we will still "reuse" their values for cascade math)
+  const helpers=[];
+  const bySeat=new Map();
   for(const h of plan.helpers){
     const c=S.players[h.hs].hand[h.idx];
-    taken.push({hs:h.hs, idx:h.idx, card:c});
+    helpers.push({hs:h.hs, idx:h.idx, card:c});
+    if(!bySeat.has(h.hs)) bySeat.set(h.hs,[]);
+    bySeat.get(h.hs).push(h.idx);
   }
-  // remove helpers from hands (descending idx per seat)
-  const bySeat=new Map();
-  for(const t of taken){
-    if(!bySeat.has(t.hs)) bySeat.set(t.hs,[]);
-    bySeat.get(t.hs).push(t.idx);
-  }
-  for(const [hs,arr] of bySeat){
-    arr.sort((a,b)=>b-a).forEach(i=>{ S.discard.push(S.players[hs].hand.splice(i,1)[0]); });
-  }
+  for(const [hs,arr] of bySeat){ arr.sort((a,b)=>b-a).forEach(i=>S.discard.push(S.players[hs].hand.splice(i,1)[0])); }
 
-  let success=false, clearedFace=false, clearedLabel="—";
+  let success=false, clearedCount=0, firstTargetLabel="—", finalTargetLabel="—";
+  const baseCard=base, h1=helpers[0]?.card||null, h2=helpers[1]?.card||null;
+
+  // helper to clear a particular target cell (already confirmed match)
+  const clearTargetCell=(pos)=>{
+    const cell=P.pyr.rows[pos.row][pos.col];
+    const tcard=cell.card;
+    P.pyr.rows[pos.row][pos.col]=null;
+    flipExposures(P);
+    if(!P.pyr.rows[2][0]) S.core.exposed=true;
+    return tcard;
+  };
+
+  // Main resolution:
   if(plan.where==="core"){
-    // numeric/logic already checked by bot/human; here permit joker or computed success
-    success=true; clearedLabel="CORE "+label(S.core.card);
+    // Core clear (cascade doesn't apply past core)
+    success=true; clearedCount=1; firstTargetLabel="CORE "+label(S.core.card); finalTargetLabel=firstTargetLabel;
+    S.core.cleared=true;
   }else if(plan.where==="pyr"){
     const cell=P.pyr.rows[plan.pos.row][plan.pos.col];
-    const tcard=cell.card; const targetVal = isJoker(tcard)? null : RVAL(tcard.r);
-    success = isMatch(base, taken[0]?.card, taken[1]?.card, targetVal);
-    if(success){
-      clearedLabel=label(tcard);
-      if(isFace(tcard.r)) clearedFace=true;
-      // clear cell
-      P.pyr.rows[plan.pos.row][plan.pos.col]=null;
-      flipExposures(P);
-      // expose core if top gone
-      if(!P.pyr.rows[2][0]) S.core.exposed=true;
+    const tcard=cell.card;
+    const tval = isJoker(tcard)? null : RVAL(tcard.r);
+    if(isMatch(baseCard, h1, h2, tval)){
+      success=true;
+      clearTargetCell(plan.pos);
+      clearedCount=1;
+      firstTargetLabel=label(tcard);
+      finalTargetLabel=firstTargetLabel;
+
+      // CASCADE: try up to 2 more clears with the SAME combo
+      for(let extra=0; extra<2; extra++){
+        // Check core first if it just exposed
+        if(S.core.exposed && !S.core.cleared && S.core.card){
+          const coreVal = isJoker(S.core.card)? null : RVAL(S.core.card.r);
+          if(isMatch(baseCard, h1, h2, coreVal)){
+            S.core.cleared=true;
+            clearedCount++;
+            finalTargetLabel="CORE "+label(S.core.card);
+            break; // end cascade on core clear (win condition)
+          }
+        }
+        // Else check any new exposed on this player's pyramid
+        const xs=exposedSlots(P);
+        let cascaded=false;
+        for(const pos of xs){
+          const c2=P.pyr.rows[pos.row][pos.col].card;
+          const v2=isJoker(c2)?null:RVAL(c2.r);
+          if(isMatch(baseCard, h1, h2, v2)){
+            const cleared=clearTargetCell(pos);
+            clearedCount++;
+            finalTargetLabel=label(cleared);
+            cascaded=true;
+            break; // one at a time
+          }
+        }
+        if(!cascaded) break; // stop cascade if no further match
+      }
     }
   }else{
     // dump (no target)
   }
 
-  // Post effects
+  // Aftermath: success/fail flow (with face-up hazard and lock already enforced via exposure logic)
   if(success){
-    if(plan.where==="core"){ S.core.cleared=true; }
-    // active gain: if cleared a face on pyramid → retrieve top of discard; else draw 1
-    if(clearedFace){
-      if(S.discard.length>0) { P.hand.push(S.discard.pop()); }
-      else drawOne(P.seat);
-    }else{
-      drawOne(P.seat);
-    }
+    // Active refills: draw 1 (cascade doesn’t alter refill)
+    if(!drawOne(P.seat)){ return; }
   }else{
-    // fail → hazard to active (face-up from deck) + active draws 1
+    // Fail → place face-up hazard on active pyramid + draw 1
     addHazardToActive();
-    drawOne(P.seat);
+    if(!drawOne(P.seat)){ return; }
   }
 
   // zero-hand refill rule for anyone who hit 0
   for(const pl of S.players){ if(pl.hand.length===0){ for(let i=0;i<5;i++) if(!drawOne(pl.seat)) break; } }
 
-  // last-play compact summary
-  const hStr = taken.map(t=>label(t.card)).join(", ") || "—";
-  const tgt = plan.where==="core" ? ("CORE "+label(S.core.card)) :
-              plan.where==="pyr"  ? label(P.pyr.rows[plan.pos.row]?.[plan.pos.col]?.card || {r:"(cleared)",s:""}) :
-              "—";
-  S.lastPlay = `${P.name} | Base ${label(base)} | Helpers ${hStr} | Target ${plan.where? (plan.where==="core"?"Core":tgt):"—"} | ${success?"✅ Success":"❌ Fail"}`;
+  // Last play summary
+  const helperStr = helpers.map(h=>label(h.card)).join(", ") || "—";
+  const tgtStr = plan.where==="core" ? ("CORE "+label(S.core.card)) :
+                 plan.where==="pyr"  ? firstTargetLabel :
+                 "—";
+  const cas = success ? (clearedCount>1 ? ` + Cascade x${clearedCount-1}` : "") : "";
+  S.lastPlay = `${P.name} | Base ${label(baseCard)} | Helpers ${helperStr} | Target ${tgtStr} | ${success?"✅ Success":"❌ Fail"}${cas}`;
 
-  // win/lose?
+  // Win/lose?
   if(S.core.cleared){ endGame(true,"Core defused! Team wins."); return; }
-  // continue
-  S.turn=(S.turn+1)%4; S.attempt.length=0; S.contributed.clear();
+
+  // Continue
+  S.turn=(S.turn+1)%4;
   renderAll();
   runTurn();
 }
@@ -372,19 +410,20 @@ function addHazardToActive(){
   const card=S.deck.pop();
   for(const [r,c] of order){
     if(!P.pyr.rows[r][c]){
+      // Face-up hazard (locks above by occupying the slot)
       P.pyr.rows[r][c]={card,hidden:false,hazard:true};
       break;
     }
   }
 }
 
-/* ======= Human turn helpers ======= */
+/* ======= Human controls ======= */
 let selectedHandIdx=null;
 function canHumanAct(){ return S.started && !ended && S.turn===0 && !S.autoP1; }
+
 function playSelected(){
   if(!canHumanAct() || selectedHandIdx==null) return;
   const P=S.players[0];
-  // pick best plan using same bot heuristic but force base = selected
   const baseIdx=selectedHandIdx;
   const [L,R]=seatLeftRight(0);
   const trySolve=(targetVal)=>{
@@ -403,22 +442,22 @@ function playSelected(){
     }
     return null;
   };
-  // build targets preferring core first
+
   const targets=[];
-  if(S.core.exposed && S.core.card) targets.push({where:"core"});
+  if(S.core.exposed && S.core.card) targets.push({where:"core",val:isJoker(S.core.card)?null:RVAL(S.core.card.r)});
   const xs=exposedSlots(P);
   for(const pos of xs){ const c=P.pyr.rows[pos.row][pos.col].card; targets.push({where:"pyr",pos,val:isJoker(c)?null:RVAL(c.r)}); }
-  // scan
+
   for(const t of targets){
-    const sol = t.where==="core" ? trySolve(S.core.card ? (isJoker(S.core.card)?null:RVAL(S.core.card.r)) : null) : trySolve(t.val);
+    const sol = trySolve(t.val);
     if(sol){ const plan={bi:baseIdx, where:t.where, pos:t.pos||null, helpers:sol.helpers}; selectedHandIdx=null; return applyAttempt(plan); }
   }
-  // no match → dump
+  // none → dump
   const plan={bi:baseIdx, where:null, pos:null, helpers:[]}; selectedHandIdx=null; applyAttempt(plan);
 }
+
 function skipHuman(){
   if(!canHumanAct()) return;
-  // dump first card
   if(S.players[0].hand.length===0) return;
   const plan={bi:0, where:null, pos:null, helpers:[]};
   applyAttempt(plan);
@@ -428,11 +467,7 @@ function skipHuman(){
 function runTurn(){
   if(ended || !S.started) return;
   updateBars();
-  if(S.turn===0 && !S.autoP1){ // wait for human
-    document.getElementById("hint").textContent="Your turn: select a card and Play Selected (bots will help automatically).";
-    renderAll(); return;
-  }
-  // bot thinks and plays
+  if(S.turn===0 && !S.autoP1){ renderAll(); return; }
   const plan=chooseBotPlay(S.turn) || {bi:0,where:null,pos:null,helpers:[]};
   setTimeout(()=>applyAttempt(plan), S.speed);
 }
@@ -440,6 +475,7 @@ function runTurn(){
 /* ======= Render ======= */
 function cardEl(c, cls=""){
   const d=document.createElement("div"); d.className="card "+cls+(c.s?` s-${c.s}`:"");
+  if(c.hazard) d.classList.add("hazard");
   d.textContent=(c.r==="Joker")?"J★":(c.r+GL[c.s]);
   if(c.r==="A") d.classList.add("A");
   if(isFace(c.r)) d.classList.add("face");
@@ -458,7 +494,7 @@ function renderPyramid(p){
   const r0=document.createElement("div"); r0.className="py-row";
   for(let i=0;i<3;i++) r0.appendChild(R[0][i]? (R[0][i].hidden? hiddenEl() : cardEl(R[0][i].card,"")) : emptySlot()); wrap.appendChild(r0);
   // exposed highlights
-  for(const ex of exposedSlots(p)){ const rows=wrap.querySelectorAll(".py-row"); const idx=(ex.row===2)?0:(ex.row===1?1:2); rows[idx].children[ex.col].classList.add("exposed"); }
+  for(const ex of exposedSlots(p)){ const rows=wrap.querySelectorAll(".py-row"); const idx=(ex.row===2)?0:(ex.row===1?1:2); rows[idx].children[ex.col].classList.add("exposed"); rows[idx].children[ex.col].classList.add("pop"); }
   return wrap;
 }
 function chip(t){const s=document.createElement("span"); s.className="chip"; s.textContent=t; return s;}
@@ -484,8 +520,15 @@ function updateBars(){
   document.getElementById("reshuffleSpan").textContent=S.started?`Reshuffles: ${S.reshufflesLeft}`:"";
   document.getElementById("coreSpan").textContent=S.started?`Core: ${S.core.exposed?(S.core.cleared?"CLEARED":label(S.core.card)):"—"}`:"";
   document.getElementById("targetsSpan").textContent=S.started?`Your targets: ${S.turn===0?targetRanksForActive().join(", "):"—"}`:"";
-  document.getElementById("attemptCount").textContent=`${S.attempt.length}/3`;
   document.getElementById("lastPlay").textContent=S.lastPlay || "—";
+}
+function targetRanksForActive(){
+  const P=S.players[S.turn];
+  const slots=exposedSlots(P).map(pos=>P.pyr.rows[pos.row][pos.col].card);
+  const coreOK = S.core.exposed && S.core.card;
+  const ranks = slots.map(c=>c.r);
+  if(coreOK){ ranks.push(S.core.card.r); }
+  return ranks;
 }
 function renderAll(){
   updateBars();
