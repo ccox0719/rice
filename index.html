@@ -2,970 +2,469 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bomb Diffusal – Pyramid</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cosmoteer: Card Duel – PnP Test</title>
 <style>
   :root{
-    --bg:#0e1116;
-    --card:#1a1f29;
-    --ink:#e7eefc;
-    --muted:#9fb0cc;
-    --accent:#5dd0ff;
-    --good:#37d77b;
-    --bad:#ff5d7d;
-    --warn:#ffd166;
-    --line:#2a3140;
+    --bg:#0f1115;--surface:#171a21;--muted:#9aa7b2;--text:#e8edf2;--accent:#45dfbf;--bad:#ff6b6b;--good:#7bd88f;
+    --radius:14px;--gap:12px;--shadow:0 6px 24px rgba(0,0,0,.35)
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:500 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto}
-  button{border:0;border-radius:10px;background:var(--card);color:var(--ink);padding:.7rem .9rem}
-  button:disabled{opacity:.5}
-  .wrap{max-width:760px;margin:0 auto;padding:10px}
-  header{
-    display:flex;align-items:center;justify-content:space-between;gap:8px;
-    position:sticky;top:0;background:linear-gradient(var(--bg),rgba(14,17,22,.8));backdrop-filter: blur(6px);z-index:3;padding:6px 4px
-  }
-  .title{font-weight:700;letter-spacing:.2px;font-size:15px}
-  .pill{padding:.45rem .6rem;background:#121722;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
-  .bar{height:1px;background:var(--line);margin:8px 0}
-
-  /* Board layout – compact vertical for phone */
-  .board{
-    display:grid;gap:10px;
-    grid-template-areas:
-      "north"
-      "center"
-      "east"
-      "south"
-      "west";
-  }
-  @media(min-width:540px){
-    .board{
-      grid-template-columns:1fr 1fr;
-      grid-template-areas:
-        "north north"
-        "west  east"
-        "south south"
-        "center center";
-    }
-  }
-
-  .seat{
-    border:1px solid var(--line);border-radius:14px;padding:10px;background:linear-gradient(180deg,#121722,#0f131b);
-  }
-  .seat.hilite{box-shadow:0 0 0 2px var(--accent) inset}
-  .seat .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-  .seat .name{font-weight:700}
-  .meta{font-size:12px;color:var(--muted)}
-  .hand{display:flex;gap:6px;flex-wrap:wrap}
-  .card{
-    width:40px;height:56px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;
-    background:var(--card);user-select:none;touch-action:manipulation;font-weight:700
-  }
-  .card.joker{background:linear-gradient(135deg,#25293a,#1c2330);color:#ffd166;border-color:#3a4259}
-  .card.face{color:#ff9de2}
-  .card.hazard{outline:2px solid var(--bad)}
-  .card.ghost{opacity:.35}
-
-  .pyr{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:auto;justify-content:center;gap:6px;margin:6px 0}
-  .row{display:flex;gap:6px;justify-content:center}
-  .tiny{font-size:11px;color:var(--muted)}
-  .controls{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-  .controls button{font-size:13px}
-  .core{
-    grid-area:center;border:1px dashed var(--line);border-radius:14px;padding:12px;display:grid;gap:8px;place-items:center;
-    background:radial-gradient(40% 60% at 50% 50%,#141a25 0%,#0e1116 70%)
-  }
-  .core h3{margin:0;font-size:15px}
-  .core .status{font-size:12px;color:var(--muted)}
-  .stack{display:flex;gap:8px;align-items:center}
-  .stack .pile{display:grid;place-items:center;width:44px;height:60px;border-radius:8px;border:1px solid var(--line);background:var(--card)}
-  .label{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
-
-  .note{font-size:12px;color:var(--muted)}
-  .log{max-height:140px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;background:#0b0f15}
-  .log p{margin:.2rem 0}
-  .helper{
-    display:none;position:fixed;inset:auto 8px 8px 8px;border:1px solid var(--line);background:#0b0f15;border-radius:14px;padding:10px;z-index:5
-  }
-  .helper.show{display:block}
-  .helper h4{margin:0 0 6px 0}
-  .helper .row{justify-content:flex-start}
-
-  /* Modal menu */
-  dialog#menu{
-    width:min(640px,94vw);border:1px solid var(--line);border-radius:16px;background:#0c1118;color:var(--ink);
-    padding:14px;box-shadow:0 10px 50px rgba(0,0,0,.6)
-  }
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  @media(max-width:480px){.grid2{grid-template-columns:1fr}}
-  .select{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:8px}
-  select{background:transparent;border:0;color:var(--ink);font-size:14px}
-  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
-  a.link{color:var(--accent);text-decoration:none}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  header{padding:16px 20px;background:linear-gradient(180deg,#141823,#10131a)}
+  header h1{margin:0;font-size:20px;letter-spacing:.5px}
+  main{padding:20px;display:grid;gap:var(--gap);grid-template-columns: 300px 1fr;align-items:start}
+  .panel{background:var(--surface);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+  h2{margin:.2rem 0 .6rem;font-size:16px;color:var(--muted);font-weight:600}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .stat{padding:8px 10px;border-radius:10px;background:#10141d;min-width:80px;text-align:center}
+  .stat b{display:block;font-size:18px}
+  .track{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pill{padding:6px 10px;border-radius:999px;background:#0e131c;color:var(--muted);border:1px solid #1f2a39}
+  .controls label{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 10px;border:1px solid #263042;border-radius:10px;background:#121722}
+  .controls label span{opacity:.9}
+  .controls .cost{color:var(--muted);font-size:12px}
+  .controls .sub{margin-left:28px;margin-top:-6px;margin-bottom:6px}
+  button{appearance:none;background:var(--accent);border:none;color:#07221b;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer}
+  button.secondary{background:#222b38;color:var(--text)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .log{height:340px;overflow:auto;padding:10px;background:#0e131b;border-radius:10px;border:1px solid #1f2837}
+  .log p{margin:.35rem 0}
+  .divider{height:1px;background:#212a39;margin:8px 0}
+  .inline{display:inline-block;margin-left:6px}
+  .bad{color:var(--bad)} .good{color:var(--good)}
+  .footer{opacity:.75;font-size:12px;text-align:center;margin-top:6px}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="title">💣 Bomb Diffusal – Pyramid</div>
-      <div class="right">
-        <span class="pill" id="turnTag">Turn: —</span>
-        <button id="btnMenu">☰</button>
-      </div>
-    </header>
+<header><h1>🚀 Cosmoteer: Card Duel — Solo Test vs AI</h1></header>
 
-    <div class="board" id="board">
-      <section class="seat" id="seatN" style="grid-area:north">
-        <div class="head"><div><span class="name">North</span> <span class="meta" id="metaN"></span></div><span class="pill" id="tagN">AI</span></div>
-        <div class="pyr" id="pyrN"></div>
-        <div class="hand" id="handN"></div>
-      </section>
-
-      <section class="core" id="core">
-        <h3>Core</h3>
-        <div class="card" id="coreCard">?</div>
-        <div class="status" id="coreStatus">Hidden</div>
-        <div class="stack">
-          <div>
-            <div class="pile" id="deckPile">🂠</div>
-            <div class="label">Deck</div>
-          </div>
-          <div>
-            <div class="pile" id="discPile">🗂</div>
-            <div class="label">Discard</div>
-          </div>
-        </div>
-        <div class="note" id="statusNote"></div>
-      </section>
-
-      <section class="seat" id="seatE" style="grid-area:east">
-        <div class="head"><div><span class="name">East</span> <span class="meta" id="metaE"></span></div><span class="pill" id="tagE">AI</span></div>
-        <div class="pyr" id="pyrE"></div>
-        <div class="hand" id="handE"></div>
-      </section>
-
-      <section class="seat" id="seatS" style="grid-area:south">
-        <div class="head"><div><span class="name">South</span> <span class="meta" id="metaS"></span></div><span class="pill" id="tagS">Human</span></div>
-        <div class="pyr" id="pyrS"></div>
-        <div class="hand" id="handS"></div>
-        <div class="controls">
-          <button id="btnPlay">Play Base</button>
-          <button id="btnPass">Pass</button>
-          <button id="btnHelper" title="Across helper may add ± one card">Ask Across Helper</button>
-        </div>
-      </section>
-
-      <section class="seat" id="seatW" style="grid-area:west">
-        <div class="head"><div><span class="name">West</span> <span class="meta" id="metaW"></span></div><span class="pill" id="tagW">AI</span></div>
-        <div class="pyr" id="pyrW"></div>
-        <div class="hand" id="handW"></div>
-      </section>
+<main>
+  <!-- LEFT: Player controls -->
+  <section class="panel">
+    <h2>Your Ship — Assign for this Round</h2>
+    <div class="row">
+      <div class="stat"><small>Reactor HP</small><b id="p-reactor">3</b></div>
+      <div class="stat"><small>Crew Alive</small><b id="p-crew">3</b></div>
+      <div class="stat"><small>Energy (this round)</small><b id="p-energy">3</b></div>
+      <div class="stat"><small>Round</small><b id="round">1</b></div>
     </div>
 
-    <div class="bar"></div>
+    <div class="divider"></div>
+
+    <div class="row track">
+      <span class="pill">Distance: <b id="distance" class="inline">3</b></span>
+      <span class="pill">Shields <span id="shieldState">ON</span> until R15</span>
+      <span class="pill">Late-game +1 to hit from R16</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="controls">
+      <label>
+        <span>🛡️ Shield Generator <span class="cost">cost: 1⚡ + 1👩‍🚀 — blocks on 6 (off after R15)</span></span>
+        <input type="checkbox" id="act-shield">
+      </label>
+
+      <label>
+        <span>🚀 Engine (move ±2) <span class="cost">cost: 1⚡ + 1👩‍🚀</span></span>
+        <input type="checkbox" id="act-engine">
+      </label>
+      <div class="sub">
+        <label class="row">
+          <span style="min-width:80px;">Direction:</span>
+          <select id="engine-dir">
+            <option value="closer">Closer (-2)</option>
+            <option value="farther">Farther (+2)</option>
+            <option value="auto" selected>Auto (AI decides)</option>
+          </select>
+        </label>
+      </div>
+
+      <label>
+        <span>🔴 Laser (1 dmg to reactor) — Range 1–3 — hit 4+ (3+ late-game)
+          <span class="cost">cost: 1⚡ + 1👩‍🚀</span></span>
+        <input type="checkbox" id="act-laser">
+      </label>
+
+      <label>
+        <span>🟠 Cannon (kill 1 crew) — Range 1–3 — hit 4+ (3+ late-game)
+          <span class="cost">cost: 2⚡ + 1👩‍🚀</span></span>
+        <input type="checkbox" id="act-cannon">
+      </label>
+
+      <label>
+        <span>💥 Missile (2 dmg) — Range 2–6 — hit 3+ (2+ late-game) — Ammo: <b id="p-missiles">2</b>
+          <span class="cost">cost: 2⚡ + 1👩‍🚀</span></span>
+        <input type="checkbox" id="act-missile">
+      </label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="row">
+      <button id="btn-resolve">Resolve Round</button>
+      <button class="secondary" id="btn-reset">New Game</button>
+    </div>
+    <p class="footer">Tip: You have 3 energy and 3 crew per round. Each selected system consumes both (as listed).</p>
+  </section>
+
+  <!-- RIGHT: Status + Log -->
+  <section class="panel">
+    <h2>Battle Status</h2>
+    <div class="row" style="gap:16px;flex-wrap:wrap">
+      <div class="panel" style="flex:1;min-width:240px;background:#121722">
+        <h2>🧑‍🚀 You</h2>
+        <div class="row">
+          <div class="stat"><small>Reactor</small><b id="p-reactor2">3</b></div>
+          <div class="stat"><small>Crew</small><b id="p-crew2">3</b></div>
+          <div class="stat"><small>Missiles</small><b id="p-missiles2">2</b></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;min-width:240px;background:#121722">
+        <h2>🤖 AI</h2>
+        <div class="row">
+          <div class="stat"><small>Reactor</small><b id="e-reactor">3</b></div>
+          <div class="stat"><small>Crew</small><b id="e-crew">3</b></div>
+          <div class="stat"><small>Missiles</small><b id="e-missiles">2</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>Combat Log</h2>
     <div class="log" id="log"></div>
-  </div>
-
-  <!-- Helper drawer -->
-  <div class="helper" id="helper">
-    <h4>Across Helper (± one card)</h4>
-    <div class="tiny">Choose one card from across player's hand to apply as + or − to your base card this attempt.</div>
-    <div class="row" id="helperHand" style="margin-top:6px"></div>
-    <div class="controls" style="margin-top:6px">
-      <button id="helperPlus">Use as +</button>
-      <button id="helperMinus">Use as −</button>
-      <button id="helperCancel">Cancel</button>
-    </div>
-  </div>
-
-  <!-- Modal Menu -->
-  <dialog id="menu">
-    <form method="dialog">
-      <h3 style="margin:.2rem 0 .6rem 0">Game Setup</h3>
-      <div class="grid2">
-        <div class="select"><span>North</span>
-          <select id="selN"><option>AI</option><option>Human</option></select>
-        </div>
-        <div class="select"><span>East</span>
-          <select id="selE"><option>AI</option><option>Human</option></select>
-        </div>
-        <div class="select"><span>South</span>
-          <select id="selS"><option selected>Human</option><option>AI</option></select>
-        </div>
-        <div class="select"><span>West</span>
-          <select id="selW"><option>AI</option><option>Human</option></select>
-        </div>
-      </div>
-
-      <div class="bar"></div>
-      <div class="grid2">
-        <div class="select"><span>Reshuffles</span>
-          <select id="selResh"><option value="1" selected>1 (standard)</option><option value="2">2</option></select>
-        </div>
-        <div class="select"><span>Core Exposure</span>
-          <select id="selCore" disabled><option>Bottom row cleared (fixed)</option></select>
-        </div>
-      </div>
-
-      <div class="tiny" style="margin-top:6px">
-        Rules quickies: Play a matching value to clear. **Cascade** up to 3 along that column. On a fail, top-deck becomes a **Hazard** in your pyramid. **Core** flips when any player clears their bottom row (3). **Joker** matches anything. Royals: **J** swap 1 with a neighbor; **Q** reveal 1 hidden; **K** draw 2 (to 4 cap). <b>Across helper:</b> during a human turn, the opposite player can contribute exactly one card as a **+ or − modifier** to your base value (once per attempt).
-      </div>
-
-      <div class="actions">
-        <button id="btnNew">New Game</button>
-        <button value="cancel">Close</button>
-      </div>
-    </form>
-  </dialog>
+  </section>
+</main>
 
 <script>
-/* =========================
-   Core Game Data Structures
-   ========================= */
-const SUITS = ["♣","♦","♥","♠"]; // suits irrelevant for matching; kept if you want to display later
-const J = 11, Q = 12, K = 13, JOKER = 0;
-
-const SEATS = ["N","E","S","W"];
-const acrossOf = { N:"S", S:"N", E:"W", W:"E" };
+/* ==========================================================
+   Cosmoteer: Card Duel — Solo Test vs AI
+   Rules baked in:
+   - Start distance 3
+   - Energy 3 / Crew 3 per round
+   - Shields: block on 6, cannot be powered from Round 16+
+   - Late game +1 to hit from Round 16
+   - Simultaneous resolution (movement then attacks)
+   - Victory: reactor<=0 OR crew<=0
+========================================================== */
 
 const state = {
-  deck: [],
-  discard: [],
-  reshuffles: 0,
-  reshuffleLimit: 1,
-
-  core: { val:null, exposed:false, revealed:false, cleared:false },
-
-  players: {
-    N: seatTemplate("N"),
-    E: seatTemplate("E"),
-    S: seatTemplate("S"),
-    W: seatTemplate("W"),
-  },
-
-  control: {
-    turn:"S",            // will rotate NESW
-    targeting: null,     // {seat, col, lvl} for UI selection
-    selectedBase: null,  // value of chosen base card
-    pendingHelper: null, // {fromSeat, val, sign:+1/-1}
-    allowHelper: false,  // true only during human attempt before resolution
-    ended: false,
-    mode: { N:"AI", E:"AI", S:"Human", W:"AI" }
-  }
+  round: 1,
+  distance: 3,
+  // Player
+  p: { reactor: 3, crew: 3, missiles: 2, shieldOn: false },
+  // Enemy (AI)
+  e: { reactor: 3, crew: 3, missiles: 2, shieldOn: false },
 };
 
-function seatTemplate(id){
-  // pyramid slots: columns 0..2 ; levels: 0=bottom,1=mid,2=top (only col 1 has level 2)
-  return {
-    id, hand:[],
-    slots:[
-      [null,null,null], // col 0 (lvl 0,1)
-      [null,null,null], // col 1 (lvl 0,1,2)
-      [null,null,null]  // col 2 (lvl 0)
-    ]
-  };
+const el = sel => document.querySelector(sel);
+const logEl = el('#log');
+
+function clamp(val, min, max){ return Math.max(min, Math.min(max, val)); }
+function d6(){ return Math.floor(Math.random()*6)+1; }
+
+function resetGame(){
+  state.round = 1;
+  state.distance = 3;
+  state.p = { reactor: 3, crew: 3, missiles: 2, shieldOn: false };
+  state.e = { reactor: 3, crew: 3, missiles: 2, shieldOn: false };
+  logEl.innerHTML = '';
+  write(`🆕 New game started. Distance = 3. Shields active until end of Round 15. Late-game +1 to hit begins Round 16.`);
+  render();
 }
 
-/* =============
-   Util helpers
-   ============= */
-function log(s){ const el=document.getElementById("log"); const p=document.createElement("p"); p.textContent=s; el.prepend(p); }
-function rnd(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function cardLabel(v){
-  if(v===JOKER) return "🃏";
-  if(v===1) return "A";
-  if(v===J) return "J";
-  if(v===Q) return "Q";
-  if(v===K) return "K";
-  return String(v);
-}
-function isFace(v){ return v===J||v===Q||v===K; }
-function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function write(html){ logEl.insertAdjacentHTML('beforeend', `<p>${html}</p>`); logEl.scrollTop = logEl.scrollHeight; }
 
-function makeDeck(){
-  const d=[];
-  for(let s=0;s<4;s++){
-    for(let v=1;v<=13;v++) d.push(v);
-  }
-  d.push(JOKER,JOKER);
-  // shuffle
-  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
-  return d;
-}
+function render(){
+  el('#round').textContent = state.round;
+  el('#distance').textContent = state.distance;
+  el('#shieldState').textContent = state.round <= 15 ? 'ON' : 'OFF';
 
-function draw(){
-  if(!state.deck.length){
-    if(state.reshuffles < state.reshuffleLimit && state.discard.length){
-      // reshuffle once
-      shuffleIntoDeck();
-    } else {
-      return null; // deckout
-    }
-  }
-  return state.deck.pop();
-}
-function shuffleIntoDeck(){
-  for(let i=state.discard.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [state.discard[i],state.discard[j]]=[state.discard[j],state.discard[i]]; }
-  state.deck = state.discard.splice(0);
-  state.reshuffles++;
+  // Player panel left
+  el('#p-reactor').textContent = state.p.reactor;
+  el('#p-crew').textContent = state.p.crew;
+  el('#p-energy').textContent = 3;
+  el('#p-missiles').textContent = state.p.missiles;
+
+  // Status cards
+  el('#p-reactor2').textContent = state.p.reactor;
+  el('#p-crew2').textContent = state.p.crew;
+  el('#p-missiles2').textContent = state.p.missiles;
+  el('#e-reactor').textContent = state.e.reactor;
+  el('#e-crew').textContent = state.e.crew;
+  el('#e-missiles').textContent = state.e.missiles;
+
+  // Disable shield checkbox after R15
+  el('#act-shield').disabled = state.round >= 16;
+
+  // Disable resolve if game over
+  const over = isOver();
+  el('#btn-resolve').disabled = over;
 }
 
-function dealHidden(){ return draw(); } // store value; hidden is UI concern
-
-/* ====================
-   Exposure & Structure
-   ==================== */
-function isExposed(p, col, lvl){
-  const s = p.slots[col][lvl];
-  if(!s) return false; // empty
-  if(lvl===0) return true; // bottom always exposed
-  if(lvl===1){
-    if(col===0){ return (p.slots[0][0]===null && p.slots[1][0]===null); }
-    if(col===1){ return (p.slots[1][0]===null && p.slots[2][0]===null); }
-  }
-  if(lvl===2 && col===1){
-    return (p.slots[0][1]===null && p.slots[1][1]===null);
-  }
+function isOver(){
+  const pDead = state.p.reactor <= 0 || state.p.crew <= 0;
+  const eDead = state.e.reactor <= 0 || state.e.crew <= 0;
+  if(pDead && eDead) return true;
+  if(pDead || eDead) return true;
   return false;
 }
-function pathAfter(col,lvl){
-  if(col===0){ return (lvl===0)?{col:0,lvl:1}:null; }
-  if(col===2){ return null; }
-  if(col===1){
-    if(lvl===0) return {col:1,lvl:1};
-    if(lvl===1) return {col:1,lvl:2};
-    return null;
-  }
+
+function outcome(){
+  const pDead = state.p.reactor <= 0 || state.p.crew <= 0;
+  const eDead = state.e.reactor <= 0 || state.e.crew <= 0;
+  if(pDead && eDead) return 'draw';
+  if(pDead) return 'ai';
+  if(eDead) return 'player';
   return null;
 }
 
-/* =================
-   Setup / New game
-   ================= */
-function newGame(){
-  // read menu choices
-  state.control.mode.N = document.getElementById("selN").value;
-  state.control.mode.E = document.getElementById("selE").value;
-  state.control.mode.S = document.getElementById("selS").value;
-  state.control.mode.W = document.getElementById("selW").value;
-  state.reshuffleLimit = parseInt(document.getElementById("selResh").value,10);
+// Validate player selections vs 3 energy & 3 crew
+function validateSelection(sel){
+  let energy = 3, crew = 3;
+  const needs = {
+    shield: sel.shield ? 1 : 0,
+    engine: sel.engine ? 1 : 0,
+    laser: sel.laser ? 1 : 0,
+    cannon: sel.cannon ? 2 : 0,
+    missile: sel.missile ? 2 : 0,
+  };
+  const crewUse = (sel.shield?1:0) + (sel.engine?1:0) + (sel.laser?1:0) + (sel.cannon?1:0) + (sel.missile?1:0);
 
-  state.deck = makeDeck();
-  state.discard = [];
-  state.reshuffles = 0;
-  state.core = { val: draw(), exposed:false, revealed:false, cleared:false };
-  state.control.turn = "S";
-  state.control.targeting = null;
-  state.control.selectedBase = null;
-  state.control.pendingHelper = null;
-  state.control.allowHelper = false;
-  state.control.ended = false;
+  if(crewUse > crew) return { ok:false, msg:'You assigned more than 3 crew.' };
 
-  // reset seats
-  for(const id of SEATS){
-    state.players[id] = seatTemplate(id);
-  }
+  // energy budget
+  const totalEnergy = needs.shield + needs.engine + needs.laser + needs.cannon + needs.missile;
+  if(totalEnergy > energy) return { ok:false, msg:'You assigned more than 3 energy.' };
 
-  // Deal pyramids: bottom face-up (we track as visible by rendering), middle hidden, top hidden
-  // We'll store just values; "hazard" flag is on item objects, so we store objects {val, hazard:false}
-  for(const id of SEATS){
-    const p = state.players[id];
-    // bottom row: 3 cards
-    for(const c of [0,1,2]) p.slots[c][0] = { val: dealHidden(), hazard:false, visible:true };
-    // middle row: 2 cards (cols 0 and 1)
-    p.slots[0][1] = { val: dealHidden(), hazard:false, visible:false };
-    p.slots[1][1] = { val: dealHidden(), hazard:false, visible:false };
-    // top row: 1 card (col 1)
-    p.slots[1][2] = { val: dealHidden(), hazard:false, visible:false };
-  }
+  // ammo check
+  if(sel.missile && state.p.missiles <= 0) return { ok:false, msg:'No missile ammo remaining.' };
 
-  // Deal hands: 4 each
-  for(const id of SEATS){
-    const p = state.players[id];
-    for(let i=0;i<4;i++){ const v=draw(); if(v==null){ endByDeck(); return; } p.hand.push(v); }
-  }
+  // range checks (warn, but allow — wasted if out of range)
+  const d = state.distance;
+  if(sel.laser && !(d>=1 && d<=3)) return { ok:true, warn:'Laser out of range (1–3). It will waste energy/crew.' };
+  if(sel.cannon && !(d>=1 && d<=3)) return { ok:true, warn:'Cannon out of range (1–3). It will waste energy/crew.' };
+  if(sel.missile && !(d>=2 && d<=6)) return { ok:true, warn:'Missile out of range (2–6). It will waste energy/crew.' };
 
-  clearLog();
-  log("New game started. Core is hidden.");
-  renderAll();
-  maybeAIAuto();
+  return { ok:true };
 }
-function clearLog(){ document.getElementById("log").innerHTML=""; }
 
-/* ===========
-   Rendering
-   =========== */
-function renderAll(){
-  // header
-  document.getElementById("turnTag").textContent = `Turn: ${state.control.turn}`;
-  // piles
-  document.getElementById("deckPile").textContent = state.deck.length;
-  document.getElementById("discPile").textContent = state.discard.length;
+// Simple AI selection
+function aiChoose(){
+  let energy=3, crew=3;
+  const d = state.distance;
+  const late = state.round >= 16;
+  const canShield = state.round <= 15;
 
-  // core
-  const cc = document.getElementById("coreCard");
-  const cs = document.getElementById("coreStatus");
-  if(state.core.cleared){
-    cc.textContent = "✓";
-    cc.className = "card";
-    cs.textContent = "Cleared";
-  } else {
-    if(!state.core.exposed){
-      cc.textContent = state.core.revealed ? cardLabel(state.core.val) : "?";
-      cc.className = "card" + (state.core.revealed ? faceClass(state.core.val) : "");
-      cs.textContent = "Hidden";
-    } else {
-      cc.textContent = cardLabel(state.core.val);
-      cc.className = "card"+faceClass(state.core.val);
-      cs.textContent = "Exposed";
+  const sel = { shield:false, engine:false, engineDir:'closer', laser:false, cannon:false, missile:false };
+
+  // 1) Shield if allowed and we have spare resources (randomized a bit)
+  if(canShield && energy>=1 && crew>=1 && Math.random() < 0.8){
+    sel.shield=true; energy--; crew--;
+  }
+
+  // 2) Movement: if out of range for all, close; else sometimes kite if player is low reactor/crew (very light logic)
+  const inLaser = d>=1 && d<=3;
+  const inMiss = d>=2 && d<=6;
+  const anyInRange = inLaser || inMiss;
+  if(energy>=1 && crew>=1){
+    if(!anyInRange){
+      sel.engine=true; sel.engineDir='closer'; energy--; crew--;
+    } else if(Math.random()<0.25){
+      sel.engine=true; sel.engineDir=(Math.random()<0.5?'farther':'closer'); energy--; crew--;
     }
   }
 
-  // seats
-  for(const id of SEATS){
-    const p = state.players[id];
-    const seatEl = document.getElementById(`seat${id}`);
-    seatEl.classList.toggle("hilite", state.control.turn===id);
-
-    document.getElementById(`tag${id}`).textContent = state.control.mode[id];
-    document.getElementById(`meta${id}`).textContent = `Hand: ${p.hand.length}`;
-
-    // pyramid
-    const pyr = document.getElementById(`pyr${id}`);
-    pyr.innerHTML = "";
-    // top row (1 card col1 lvl2)
-    const rowTop = document.createElement("div"); rowTop.className="row";
-    rowTop.appendChild(renderSlot(id,1,2));
-    pyr.appendChild(rowTop);
-    // middle row (cols 0,1 at lvl1)
-    const rowMid = document.createElement("div"); rowMid.className="row";
-    rowMid.appendChild(renderSlot(id,0,1));
-    rowMid.appendChild(renderSlot(id,1,1));
-    pyr.appendChild(rowMid);
-    // bottom row (cols 0,1,2 at lvl0)
-    const rowBot = document.createElement("div"); rowBot.className="row";
-    rowBot.appendChild(renderSlot(id,0,0));
-    rowBot.appendChild(renderSlot(id,1,0));
-    rowBot.appendChild(renderSlot(id,2,0));
-    pyr.appendChild(rowBot);
-
-    // hand
-    const hand = document.getElementById(`hand${id}`); hand.innerHTML="";
-    p.hand.forEach((v,idx)=>{
-      const el = document.createElement("div");
-      el.className = "card"+faceClass(v);
-      el.textContent = cardLabel(v);
-      if(state.control.turn===id && state.control.mode[id]==="Human"){
-        el.style.cursor="pointer";
-        el.onclick=()=>{ state.control.selectedBase={val:v, idx}; highlightSelection(); };
-      }else{
-        el.classList.add("ghost");
-      }
-      hand.appendChild(el);
-    });
+  // 3) Weapons priority: missiles (if ammo & in range) → cannon → laser
+  if(state.e.missiles>0 && energy>=2 && crew>=1 && d>=2 && d<=6){
+    sel.missile=true; energy-=2; crew--;
   }
-  updateStatusNote();
-  highlightSelection();
-}
-function faceClass(v){
-  if(v===JOKER) return " joker";
-  if(v===J||v===Q||v===K) return " face";
-  return "";
-}
-function renderSlot(id,col,lvl){
-  const p = state.players[id];
-  const s = p.slots[col][lvl];
-  const el = document.createElement("div");
-  el.className = "card";
-
-  if(!s){
-    el.classList.add("ghost");
-    el.textContent = "";
-    return el;
+  if(energy>=2 && crew>=1 && d>=1 && d<=3){
+    sel.cannon=true; energy-=2; crew--;
   }
-  if(!isExposed(p,col,lvl) && !s.visible){
-    el.textContent = "●";
-    el.classList.add("ghost");
-  }else{
-    el.textContent = s.visible ? cardLabel(s.val) : "?";
+  if(energy>=1 && crew>=1 && d>=1 && d<=3){
+    sel.laser=true; energy-=1; crew--;
   }
-  if(s.hazard) el.classList.add("hazard");
-
-  // allow selecting a target on human's turn
-  if(state.control.turn===id && state.control.mode[id]==="Human" && isExposed(p,col,lvl)){
-    el.style.cursor="pointer";
-    el.onclick=()=>{ state.control.targeting={seat:id,col,lvl}; highlightSelection(); };
-  }
-  return el;
-}
-function highlightSelection(){
-  // mark selected target & base
-  for(const id of SEATS){
-    const pyr = document.getElementById(`pyr${id}`);
-    if(!pyr) continue;
-    const cards = pyr.querySelectorAll(".card");
-    cards.forEach(c=>c.style.boxShadow="none");
-  }
-  if(state.control.targeting){
-    const {seat,col,lvl} = state.control.targeting;
-    // crude mapping: re-render already placed; just outline entire seat for clarity
-    document.getElementById(`seat${seat}`).style.boxShadow="0 0 0 2px rgba(93,208,255,.35) inset";
-  }else{
-    for(const id of SEATS) document.getElementById(`seat${id}`).style.boxShadow="none";
-  }
-
-  // base
-  const seat = state.control.turn;
-  const hand = document.getElementById(`hand${seat}`);
-  if(!hand) return;
-  [...hand.children].forEach((el,i)=>{
-    el.style.outline = (state.control.selectedBase && state.control.selectedBase.idx===i) ? "2px solid var(--accent)" : "none";
-  });
-}
-function updateStatusNote(){
-  const t = state.control.turn;
-  const you = state.players[t];
-  let txt = state.control.ended ? "Game over." : (state.control.mode[t]==="Human" ? "Your turn: pick a target & base card." : "AI thinking…");
-  document.getElementById("statusNote").textContent = txt;
+  return sel;
 }
 
-/* =========================
-   Turn Flow / Human actions
-   ========================= */
-function humanPlay(){
-  if(state.control.ended) return;
-  const seat = state.control.turn;
-  if(state.control.mode[seat]!=="Human"){ return; }
-  const targeting = state.control.targeting;
-  const base = state.control.selectedBase;
-  if(!targeting){ alert("Select a target card in your pyramid (or Core if exposed)."); return; }
-  if(!base){ alert("Select a base card from your hand."); return; }
+function resolveRound(){
+  // Build player selection from UI
+  const ps = {
+    shield: el('#act-shield').checked,
+    engine: el('#act-engine').checked,
+    engineDir: el('#engine-dir').value,
+    laser: el('#act-laser').checked,
+    cannon: el('#act-cannon').checked,
+    missile: el('#act-missile').checked
+  };
 
-  // Helper phase opens (once per attempt)
-  state.control.allowHelper = true;
-  // Allow immediate resolution if no helper wanted
-  resolveAttempt(seat, targeting, base, state.control.pendingHelper);
-}
+  // Shield auto-off after R15
+  if(state.round >= 16) ps.shield = false;
 
-function humanPass(){
-  if(state.control.ended) return;
-  const seat = state.control.turn;
-  if(state.control.mode[seat]!=="Human") return;
-  endOfAttemptDraw(seat); // simple pass + draw
-  nextTurn();
-}
+  const v = validateSelection(ps);
+  if(!v.ok){ alert(v.msg); return; }
+  if(v.warn) write(`⚠️ ${v.warn}`);
 
-function openHelper(){
-  if(state.control.ended) return;
-  const seat = state.control.turn;
-  if(state.control.mode[seat]!=="Human") return;
-  if(!state.control.allowHelper){ state.control.allowHelper=true; }
-  const across = acrossOf[seat];
-  // Build helper hand UI
-  const box = document.getElementById("helper");
-  const holder = document.getElementById("helperHand");
-  holder.innerHTML = "";
-  state.players[across].hand.forEach((v,idx)=>{
-    const c=document.createElement("div");
-    c.className="card"+faceClass(v);
-    c.textContent=cardLabel(v);
-    c.style.cursor="pointer";
-    c.onclick=()=>{ // select helper card
-      [...holder.children].forEach(e=>e.style.outline="none");
-      c.style.outline = "2px solid var(--accent)";
-      box.dataset.sel = idx;
-    };
-    holder.appendChild(c);
-  });
-  document.getElementById("helper").classList.add("show");
-}
+  // AI selection
+  const es = aiChoose();
+  if(state.round >= 16) es.shield = false;
 
-/* Helper controls */
-document.getElementById("helperPlus").onclick = ()=>applyHelper(+1);
-document.getElementById("helperMinus").onclick = ()=>applyHelper(-1);
-document.getElementById("helperCancel").onclick = ()=>{ document.getElementById("helper").classList.remove("show"); };
-
-function applyHelper(sign){
-  const box = document.getElementById("helper");
-  const idx = box.dataset.sel;
-  if(idx===undefined){ alert("Choose a helper card first."); return; }
-  const seat = state.control.turn;
-  const across = acrossOf[seat];
-  const v = state.players[across].hand.splice(idx,1)[0]; // remove helper card
-  state.discard.push(v);
-  state.control.pendingHelper = { fromSeat: across, val:v, sign };
-  box.classList.remove("show");
-  renderAll();
-}
-
-/* ==================
-   Attempt Resolution
-   ================== */
-function resolveAttempt(seat, targeting, baseSel, helper){
-  const P = state.players[seat];
-  if(targeting.seat==="core"){ // (not used in this version; only own pyramid targets)
-    return;
-  }
-  const slot = P.slots[targeting.col][targeting.lvl];
-  if(!slot || !isExposed(P,targeting.col,targeting.lvl)){
-    alert("Target is not exposed.");
-    return;
-  }
-
-  // Remove base from hand
-  const baseVal = P.hand.splice(baseSel.idx,1)[0];
-  state.discard.push(baseVal);
-
-  // Compute effective base with helper if any
-  let eff = baseVal;
-  if(helper){
-    if(eff===JOKER){
-      // Joker as base already matches anything; helper unnecessary but allowed (we'll ignore modifier)
-    }else if(helper.val===JOKER){
-      // Joker as helper = wild modifier: we treat as exact match (sets eff to target value)
-      eff = slot.val;
-    }else{
-      eff = eff + helper.sign * helper.val;
-      if(eff<1) eff=1;
-      if(eff>13) eff=13;
-    }
-    // consume helper only once per attempt (already discarded)
-  }
-
-  // Check match
-  let success = (slot.val===JOKER) || (baseVal===JOKER) || (eff===slot.val);
-  if(success){
-    // Cascade up to 3 clears in this column
-    let clears=0;
-    let here = {col:targeting.col, lvl:targeting.lvl};
-    while(here && clears<3){
-      const s = P.slots[here.col][here.lvl];
-      if(!s) break;
-      if(!isExposed(P,here.col,here.lvl)) break;
-
-      // still matches?
-      if(!(s.val===JOKER || baseVal===JOKER || eff===s.val)) break;
-
-      // clear
-      P.slots[here.col][here.lvl]=null;
-      state.discard.push(s.val);
-      clears++;
-      log(`${seat} cleared ${labelPos(here)} (${cardLabel(s.val)})`);
-
-      // Royal effect
-      if(s.val===J){ jackSwap(seat); }
-      else if(s.val===Q){ queenReveal(seat); }
-      else if(s.val===K){ kingSurge(seat); }
-
-      // Check core exposure rule (bottom row cleared by any player)
-      checkBottomRowExpose(seat);
-
-      // auto-clear if core exposed & is Joker (as soon as exposure happens)
-      autoClearCoreIfJoker();
-
-      // next up along path
-      here = pathAfter(here.col,here.lvl);
-    }
-    // End-of-attempt draw (1 up to 4)
-    endOfAttemptDraw(seat);
-  } else {
-    // Fail -> Hazard
-    const h = draw();
-    if(h==null){ endByDeck(); return; }
-    placeHazard(P, h);
-    log(`${seat} failed. Hazard added (${cardLabel(h)}).`);
-    endOfAttemptDraw(seat);
-  }
-
-  // Reset helper window
-  state.control.pendingHelper=null;
-  state.control.allowHelper=false;
-  state.control.selectedBase=null;
-  state.control.targeting=null;
-
-  // Win check (core cleared by later actions)
-  if(state.core.cleared){ endByWin(); return; }
-
-  renderAll();
-  nextTurn();
-}
-function labelPos(pos){
-  const L = ["B","M","T"];
-  return `C${pos.col} ${["Bottom","Middle","Top"][pos.lvl]}`;
-}
-function placeHazard(p, v){
-  // lowest available: (0,0)(1,0)(2,0)(0,1)(1,1)(1,2)
-  const order = [[0,0],[1,0],[2,0],[0,1],[1,1],[1,2]];
-  for(const [c,l] of order){
-    if(p.slots[c][l]===null){
-      p.slots[c][l] = { val:v, hazard:true, visible:true };
-      return;
+  // MOVEMENT (simultaneous)
+  let delta = 0;
+  if(ps.engine){
+    if(ps.engineDir === 'closer') delta -= 2;
+    else if(ps.engineDir === 'farther') delta += 2;
+    else { // auto: if no weapon is in range, close; else 25% random reposition
+      const d = state.distance;
+      const inLaser = d>=1 && d<=3;
+      const inMiss = d>=2 && d<=6;
+      if(!(inLaser || inMiss)) delta -= 2;
+      else if(Math.random()<0.25) delta += (Math.random()<0.5?2:-2);
     }
   }
-  // if no space (should be rare), discard it
-  state.discard.push(v);
-}
-function endOfAttemptDraw(seat){
-  const p = state.players[seat];
-  if(p.hand.length<4){
-    const v = draw();
-    if(v==null){ endByDeck(); return; }
-    p.hand.push(v);
-  }
-}
+  if(es.engine) delta += (es.engineDir==='farther'? 2 : -2);
 
-function checkBottomRowExpose(seat){
-  // If bottom row (all three) cleared for ANY player, expose core (flip). (Fixed by your spec.)
-  for(const id of SEATS){
-    const pl = state.players[id];
-    const bottomEmpty = (!pl.slots[0][0] && !pl.slots[1][0] && !pl.slots[2][0]);
-    if(bottomEmpty && !state.core.exposed){
-      state.core.exposed = true;
-      state.core.revealed = true;
-      log(`Core exposed (bottom row cleared by ${id}).`);
-    }
-  }
-}
-function autoClearCoreIfJoker(){
-  if(state.core.exposed && !state.core.cleared && state.core.val===JOKER){
-    state.core.cleared = true;
-    log("Core is Joker and auto-clears. ✅ WIN");
-    endByWin();
-  }
-}
+  state.distance = clamp(state.distance + delta, 1, 10);
+  write(`🧭 Movement resolved. Distance is now <b>${state.distance}</b>.`);
 
-/* ===============
-   Royal Effects
-   =============== */
-function jackSwap(seat){
-  // choose one neighbor (deterministic: right neighbor in turn order NESW)
-  const idx = SEATS.indexOf(seat);
-  const neighbor = SEATS[(idx+1)%4];
-  const me = state.players[seat], nb = state.players[neighbor];
+  // SHIELDS (active only before round 16)
+  state.p.shieldOn = (state.round <= 15 && ps.shield);
+  state.e.shieldOn = (state.round <= 15 && es.shield);
 
-  if(me.hand.length){
-    // give least-useful (not matching any exposed value)
-    const exposedVals = exposedValues(me);
-    me.hand.sort((a,b)=>usefulness(exposedVals,a)-usefulness(exposedVals,b));
-    const give = me.hand.shift();
-    if(nb.hand.length<4) nb.hand.push(give); else me.hand.unshift(give); // respect cap
-  }
-  if(nb.hand.length && me.hand.length<4){
-    // take random
-    const i = Math.floor(Math.random()*nb.hand.length);
-    const take = nb.hand.splice(i,1)[0];
-    me.hand.push(take);
-  }
-  log("Jack: swapped a card with neighbor.");
-}
-function usefulness(exposedVals,v){
-  if(v===JOKER) return 2;
-  if(exposedVals.has(v)) return 1;
-  return 0;
-}
-function exposedValues(p){
-  const set = new Set();
-  for(let c=0;c<3;c++){
-    for(let l=0;l<3;l++){
-      const s=p.slots[c][l];
-      if(s && isExposed(p,c,l)) set.add(s.val);
-    }
-  }
-  return set;
-}
-function queenReveal(seat){
-  // reveal first hidden in this order: my (0,1) then (1,1) then (1,2); else teammate
-  const targets = [[seat,0,1],[seat,1,1],[seat,1,2]];
-  for(const t of targets){
-    const s = state.players[t[0]].slots[t[1]][t[2]];
-    if(s && !s.visible){ s.visible=true; log("Queen: revealed a hidden card."); return; }
-  }
-  // teammate reveal any hidden in seat order NESW
-  for(const id of SEATS){
-    for(const pos of [[0,1],[1,1],[1,2]]){
-      const s=state.players[id].slots[pos[0]][pos[1]];
-      if(s && !s.visible){ s.visible=true; log("Queen: revealed a teammate's hidden card."); return; }
-    }
-  }
-  // else reveal core if not revealed
-  if(!state.core.revealed){ state.core.revealed=true; log("Queen: revealed the Core."); }
-}
-function kingSurge(seat){
-  const p = state.players[seat];
-  for(let i=0;i<2;i++){
-    if(p.hand.length>=4) break;
-    const v = draw(); if(v==null){ endByDeck(); return; }
-    p.hand.push(v);
-  }
-  log("King: drew up to 2 (cap 4).");
-}
+  // ATTACKS (simultaneous)
+  const late = state.round >= 16;
+  const hitBonus = late ? 1 : 0;
 
-/* ==========
-   End states
-   ========== */
-function endByWin(){
-  state.core.cleared = true;
-  state.control.ended = true;
-  renderAll();
-  alert("✅ Diffused! You win.");
-}
-function endByDeck(){
-  state.control.ended = true;
-  renderAll();
-  alert("💥 Deck exhausted. You lose.");
-}
+  // Helper: roll to hit
+  const rollHit = (need) => (d6() + hitBonus) >= need;
 
-/* =========
-   Turn step
-   ========= */
-function nextTurn(){
-  if(state.control.ended) return;
-  const idx = SEATS.indexOf(state.control.turn);
-  state.control.turn = SEATS[(idx+1)%4];
-  renderAll();
-  maybeAIAuto();
-}
+  // Per-attack shield block (6+)
+  const tryBlock = (defenderShieldOn) => defenderShieldOn && (d6() >= 6);
 
-function maybeAIAuto(){
-  const seat = state.control.turn;
-  if(state.control.ended) return;
-  if(state.control.mode[seat]!=="AI") return;
+  const d = state.distance;
+  let logRound = [];
 
-  // tiny delay for UX
-  setTimeout(()=>aiTurn(seat), 300);
-}
-
-/* ==========
-   AI policy
-   ========== */
-function aiTurn(seat){
-  const P = state.players[seat];
-
-  // Choose exposed targets in own pyramid, prioritize hazards, then lowest level
-  const expos = [];
-  const hazards = [];
-  for(let c=0;c<3;c++){
-    for(let l=0;l<3;l++){
-      const s = P.slots[c][l];
-      if(s && isExposed(P,c,l)){
-        (s.hazard ? hazards : expos).push({col:c,lvl:l,val:s.val,hazard:s.hazard});
-      }
-    }
-  }
-
-  function pickTarget(){
-    // exact matches first
-    const trySets = [hazards, expos];
-    for(const set of trySets){
-      const exact = set.filter(t => P.hand.includes(t.val) || P.hand.includes(JOKER) || t.val===JOKER);
-      if(exact.length){
-        exact.sort((a,b)=>a.lvl-b.lvl);
-        return exact[0];
-      }
-    }
-    // else just lowest exposed (will fail)
-    const all = hazards.concat(expos).sort((a,b)=>a.lvl-b.lvl);
-    return all[0]||null;
-  }
-
-  const tgt = pickTarget();
-  if(!tgt){
-    endOfAttemptDraw(seat);
-    nextTurn();
-    return;
-  }
-
-  // Choose base
-  let baseIdx = P.hand.findIndex(v=> v===tgt.val ); // exact
-  if(baseIdx<0) baseIdx = P.hand.findIndex(v=> v===JOKER);
-  if(baseIdx<0){
-    // consider across helper opportunistically: if opposite can +/− to make match with smallest |diff|
-    const across = state.players[acrossOf[seat]];
-    let best = null;
-    for(let i=0;i<P.hand.length;i++){
-      const b = P.hand[i];
-      // Use helper as needed
-      for(const h of across.hand){
-        if(h===JOKER){ // helper joker can force match
-          best = {baseIdx:i, helper:{val:h, sign:+1}}; break;
-        }else{
-          for(const sgn of [+1,-1]){
-            const eff = clamp13(b + sgn*h);
-            if(eff===tgt.val){ best = {baseIdx:i, helper:{val:h, sign:sgn}}; break; }
-          }
+  // MISSILES
+  if(ps.missile && state.p.missiles>0){
+    if(d>=2 && d<=6){
+      const hit = rollHit(3); // 3+ (2+ late)
+      if(hit){
+        const blocked = tryBlock(state.e.shieldOn);
+        if(blocked) logRound.push(`Your 💥 Missile was <span class="bad">blocked</span>!`);
+        else {
+          state.e.reactor -= 2;
+          logRound.push(`Your 💥 Missile hits! <span class="good">-2 Reactor</span> to AI.`);
         }
-        if(best) break;
-      }
-      if(best) break;
-    }
-    if(best){
-      // pull helper
-      const hIdx = state.players[acrossOf[seat]].hand.indexOf(best.helper.val);
-      state.players[acrossOf[seat]].hand.splice(hIdx,1);
-      state.discard.push(best.helper.val);
-      resolveAIAttempt(seat, tgt, best.baseIdx, best.helper);
-      return;
-    }
-    // else pick a random base (fail likely)
-    baseIdx = Math.floor(Math.random()*P.hand.length);
+      } else logRound.push(`Your 💥 Missile missed.`);
+      state.p.missiles--;
+    } else logRound.push(`Your 💥 Missile out of range (wasted).`);
+  }
+  if(es.missile && state.e.missiles>0){
+    if(d>=2 && d<=6){
+      const hit = rollHit(3);
+      if(hit){
+        const blocked = tryBlock(state.p.shieldOn);
+        if(blocked) logRound.push(`AI's 💥 Missile was <span class="good">blocked</span>!`);
+        else {
+          state.p.reactor -= 2;
+          logRound.push(`AI 💥 Missile hits! <span class="bad">-2 Reactor</span> to You.`);
+        }
+      } else logRound.push(`AI 💥 Missile missed.`);
+      state.e.missiles--;
+    } else logRound.push(`AI 💥 Missile out of range (wasted).`);
   }
 
-  resolveAIAttempt(seat, tgt, baseIdx, null);
-}
-function clamp13(v){ return Math.max(1, Math.min(13, v)); }
-
-function resolveAIAttempt(seat, tgt, baseIdx, helper){
-  state.control.turn = seat; // ensure
-  const targeting = { seat, col:tgt.col, lvl:tgt.lvl };
-  const baseSel = { idx: baseIdx, val: state.players[seat].hand[baseIdx] };
-  resolveAttempt(seat, targeting, baseSel, helper);
-}
-
-/* ==========
-   UI wiring
-   ========== */
-document.getElementById("btnPlay").onclick = humanPlay;
-document.getElementById("btnPass").onclick = humanPass;
-document.getElementById("btnHelper").onclick = openHelper;
-
-document.getElementById("btnMenu").onclick = ()=> document.getElementById("menu").showModal();
-document.getElementById("btnNew").onclick = (e)=>{ e.preventDefault(); newGame(); };
-
-window.addEventListener("load", ()=>{
-  document.getElementById("menu").showModal();
-});
-
-/* ==================
-   Tiny conveniences
-   ================== */
-function faceUp(s){ return s && (s.visible || isExposed); }
-
-/* ======================
-   Extra rule refinements
-   ====================== */
-function endIfCoreManualCleared(seat){
-  if(state.core.exposed && !state.core.cleared){
-    // players must target Core explicitly to clear; this version focuses on own pyramid targets;
-    // if you want to allow direct Core targeting once exposed, you can add a special target in UI.
+  // CANNONS (kill 1 crew on hit)
+  if(ps.cannon){
+    if(d>=1 && d<=3){
+      const hit = rollHit(4); // 4+ (3+ late)
+      if(hit){
+        const blocked = tryBlock(state.e.shieldOn);
+        if(blocked) logRound.push(`Your 🟠 Cannon was <span class="bad">blocked</span>!`);
+        else {
+          state.e.crew -= 1;
+          logRound.push(`Your 🟠 Cannon hits! AI loses <span class="good">1 crew</span>.`);
+        }
+      } else logRound.push(`Your 🟠 Cannon missed.`);
+    } else logRound.push(`Your 🟠 Cannon out of range (wasted).`);
   }
-}
-function clearIfCoreTargetedByMatch(){ /* placeholder if you add core targeting UI */ }
-
-function autoRevealNewlyExposed(p){
-  // (Optional) Keep hidden as per rules. We already track visibility per slot.
-}
-
-/* ===============
-   Menu conveniences
-   =============== */
-function setSeatTags(){
-  for(const id of SEATS){
-    document.getElementById(`tag${id}`).textContent = state.control.mode[id];
+  if(es.cannon){
+    if(d>=1 && d<=3){
+      const hit = rollHit(4);
+      if(hit){
+        const blocked = tryBlock(state.p.shieldOn);
+        if(blocked) logRound.push(`AI's 🟠 Cannon was <span class="good">blocked</span>!`);
+        else {
+          state.p.crew -= 1;
+          logRound.push(`AI 🟠 Cannon hits! You lose <span class="bad">1 crew</span>.`);
+        }
+      } else logRound.push(`AI 🟠 Cannon missed.`);
+    } else logRound.push(`AI 🟠 Cannon out of range (wasted).`);
   }
+
+  // LASERS (1 dmg to reactor)
+  if(ps.laser){
+    if(d>=1 && d<=3){
+      const hit = rollHit(4); // 4+ (3+ late)
+      if(hit){
+        const blocked = tryBlock(state.e.shieldOn);
+        if(blocked) logRound.push(`Your 🔴 Laser was <span class="bad">blocked</span>!`);
+        else {
+          state.e.reactor -= 1;
+          logRound.push(`Your 🔴 Laser hits! <span class="good">-1 Reactor</span> to AI.`);
+        }
+      } else logRound.push(`Your 🔴 Laser missed.`);
+    } else logRound.push(`Your 🔴 Laser out of range (wasted).`);
+  }
+  if(es.laser){
+    if(d>=1 && d<=3){
+      const hit = rollHit(4);
+      if(hit){
+        const blocked = tryBlock(state.p.shieldOn);
+        if(blocked) logRound.push(`AI's 🔴 Laser was <span class="good">blocked</span>!`);
+        else {
+          state.p.reactor -= 1;
+          logRound.push(`AI 🔴 Laser hits! <span class="bad">-1 Reactor</span> to You.`);
+        }
+      } else logRound.push(`AI 🔴 Laser missed.`);
+    } else logRound.push(`AI 🔴 Laser out of range (wasted).`);
+  }
+
+  // Clamp stats
+  state.p.reactor = Math.max(0, state.p.reactor);
+  state.e.reactor = Math.max(0, state.e.reactor);
+  state.p.crew = Math.max(0, state.p.crew);
+  state.e.crew = Math.max(0, state.e.crew);
+
+  // Write round summary
+  write(`<b>— Round ${state.round} —</b>`);
+  logRound.forEach(x => write(x));
+  write(`You: Reactor ${state.p.reactor}, Crew ${state.p.crew}, Missiles ${state.p.missiles} &nbsp; | &nbsp; AI: Reactor ${state.e.reactor}, Crew ${state.e.crew}, Missiles ${state.e.missiles}`);
+  write(`<span class="muted">Shields: You ${state.p.shieldOn?'ON':'OFF'} • AI ${state.e.shieldOn?'ON':'OFF'}</span><br>`);
+
+  // Check victory
+  const out = outcome();
+  if(out){
+    if(out==='player') write(`<b class="good">✅ You win!</b>`);
+    else if(out==='ai') write(`<b class="bad">❌ You were defeated.</b>`);
+    else write(`<b>⚖️ Draw — both ships disabled.</b>`);
+  } else {
+    state.round++;
+  }
+
+  // Clear checkboxes for next round
+  ['#act-shield','#act-engine','#act-laser','#act-cannon','#act-missile'].forEach(id=>{ el(id).checked=false; });
+  render();
 }
 
-/* Done */
+// Hook up UI
+el('#btn-resolve').addEventListener('click', resolveRound);
+el('#btn-reset').addEventListener('click', resetGame);
+
+// Kickoff
+resetGame();
 </script>
 </body>
 </html>
