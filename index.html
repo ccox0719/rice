@@ -3,368 +3,749 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cosmoteer – Minimal vs AI</title>
+<title>Cosmoteer — Build & Battle (Grid, AI, Seeded)</title>
 <style>
   :root {
-    --bg:#0e0f14; --panel:#151823; --card:#1c2030; --accent:#6ee7ff; --accent2:#ffd166;
-    --good:#4ade80; --bad:#f87171; --muted:#94a3b8; --text:#e6edf3;
+    --bg:#0d1016; --panel:#141827; --muted:#90a0b5; --text:#eaf0ff;
+    --accent:#63c4ff; --good:#6ae28a; --warn:#ffc857; --bad:#ff6b6b; --line:#24304f;
+    --btn:#1a1f33; --btn-h:#232a46;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,#0e0f14,#0c101a 40%,#0a0f18);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
-  header{padding:12px 16px;border-bottom:1px solid #1f2433;background:#0e121b;position:sticky;top:0;z-index:2}
-  header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.3px}
-  main{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:12px}
-  .row{display:grid;grid-template-columns:1fr 280px;gap:12px}
-  .arena{background:var(--panel);border:1px solid #22283a;border-radius:10px;padding:12px;display:grid;gap:12px}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .side h3{margin:0 0 6px 0;font-size:14px;color:var(--muted);font-weight:600}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-  .card{background:var(--card);border:1px solid #283147;border-radius:10px;padding:10px;display:grid;gap:8px;position:relative;min-height:110px}
-  .title{display:flex;align-items:center;gap:6px;font-weight:700}
-  .hpbar{height:8px;background:#2a3348;border-radius:999px;overflow:hidden}
-  .hpbar>div{height:100%;background:linear-gradient(90deg,var(--good),#22c55e);width:100%}
-  .meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  button{appearance:none;background:#1f2638;color:var(--text);border:1px solid #2b3550;border-radius:8px;padding:8px 10px;font-weight:600;cursor:pointer}
-  button:hover{border-color:#3b4a73}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  .pill{display:inline-flex;align-items:center;gap:6px;background:#1a2233;border:1px solid #27314a;border-radius:999px;padding:4px 8px;font-size:12px}
-  .shieldOn{color:#cffafe}
-  .shieldOff{color:#94a3b8;text-decoration:line-through}
-  aside{background:var(--panel);border:1px solid #22283a;border-radius:10px;padding:12px;display:grid;gap:10px;height:fit-content;position:sticky;top:64px}
-  .log{background:#0f1420;border:1px solid #1e2740;border-radius:8px;min-height:160px;max-height:320px;overflow:auto;padding:8px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.4}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .toast{padding:8px 10px;background:#111829;border:1px solid #203052;border-radius:8px}
-  .you{border-left:4px solid var(--accent);padding-left:8px}
-  .ai{border-left:4px solid var(--accent2);padding-left:8px}
-  footer{padding:12px 16px;color:#94a3b8;text-align:center}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--text);background:linear-gradient(180deg,#0c0f15,#0b0e14 50%,#0c0f15);}
+  header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  h1{font-size:18px;margin:0 8px 0 0;letter-spacing:.3px}
+  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px}
+  .accent{color:var(--accent)}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  button{background:var(--btn);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:600}
+  button:hover{background:var(--btn-h)} button:disabled{opacity:.5;cursor:default}
+  input[type="number"],input[type="text"]{background:#0f1322;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+  main{display:grid;grid-template-columns:340px 1fr 340px;gap:12px;padding:12px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .title{font-weight:700;font-size:14px;color:#d6eaff;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .sub{font-size:12px;color:var(--muted)}
+  .section{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .cell{position:relative;aspect-ratio:1;border:1px dashed #334064;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:4px}
+  .cell.core{border-style:solid}
+  .mod{font-size:12px;text-align:center;line-height:1.15}
+  .hp{position:absolute;right:4px;bottom:4px;font-weight:700;font-size:11px;background:#0d1221;padding:2px 5px;border-radius:6px;border:1px solid #223050}
+  .shop{display:grid;gap:8px}
+  .card{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:#111426;border:1px solid #22304f}
+  .card small{color:var(--muted)}
+  .log{height:290px;overflow:auto;background:#0c101e;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px}
+  .log p{margin:.35em 0}
+  .targets button{font-size:12px}
+  .switch{display:inline-flex;align-items:center;gap:6px}
+  .leftRight{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
-<header><h1>Cosmoteer (Minimal) — Human vs AI</h1></header>
+<header>
+  <h1>Cosmoteer</h1>
+  <button id="newGameBtn">New Game</button>
+  <span id="phaseInfo" class="pill accent"></span>
+  <span id="roundInfo" class="pill"></span>
+  <span id="pointsInfo" class="pill"></span>
+  <span class="pill">Seed: <span id="seedOut" class="stat"></span></span>
+  <input id="seedIn" placeholder="set seed…" size="10" />
+  <button id="setSeedBtn" title="Use seed">Use</button>
+</header>
+
 <main>
-  <div class="row">
-    <section class="arena">
-      <div class="row2">
-        <div class="toast you" id="turnLabel">Your turn</div>
-        <div class="toast">Round <span id="roundNum">1</span> • Modifier Deck: <span id="deckLeft">∞</span></div>
+  <section class="panel">
+    <div class="title">Your Ship</div>
+    <div id="playerGrid" class="grid"></div>
+
+    <div class="section">
+      <div class="title">Actions</div>
+      <div id="battleActions" class="row"></div>
+      <div class="row targets section" id="targetsRow"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="title">Event Log</div>
+    <div id="log" class="log"></div>
+
+    <div class="section">
+      <div class="title">Options</div>
+      <label class="switch">
+        <input type="checkbox" id="expansionToggle" />
+        <span>Use Expansion Modifiers (EMP / Pierce / Chain / Overload / Rebound)</span>
+      </label>
+    </div>
+
+    <div class="section">
+      <div class="title">Quick Sim (AI vs AI)</div>
+      <div class="row">
+        <input id="simN" type="number" value="100" min="10" step="10" style="width:90px" />
+        <button id="runSimBtn">Run</button>
+        <span id="simOut" class="stat"></span>
       </div>
-      <div class="cols">
-        <div class="side" id="youSide">
-          <h3>🧑 Your Ship</h3>
-          <div class="cards" id="youCards"></div>
-        </div>
-        <div class="side" id="aiSide">
-          <h3>🤖 AI Ship</h3>
-          <div class="cards" id="aiCards"></div>
-        </div>
+      <div class="sub">Runs with current options, random seeds; fast&loose balance check.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="title">Enemy Ship (AI)</div>
+    <div id="aiGrid" class="grid"></div>
+
+    <div class="section">
+      <div class="title">Build Shop</div>
+      <div id="shop" class="shop"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="endBuildBtn">End Build Round</button>
       </div>
-    </section>
-    <aside>
-      <div class="row2">
-        <button id="endTurnBtn">End Turn</button>
-        <button id="newRoundBtn">New Round</button>
-      </div>
-      <button id="resetBtn">Reset Game</button>
-      <div class="log" id="log"></div>
-    </aside>
-  </div>
-  <section class="toast">
-    <b>How to play (minimal rules)</b><br/>
-    • You and the AI each have: Core (❤️5), Laser (💥2), Shield (🛡️2 once/round).<br/>
-    • On your turn, pick an enemy module to attack with your Laser. A modifier is drawn (Hit➕1, Miss, Crit×2, Null).<br/>
-    • The defender’s Shield (if unused this round) blocks up to 2 damage automatically, once per round.<br/>
-    • Destroy the enemy Core to win. New Round refreshes shields on both sides.
+    </div>
   </section>
 </main>
-<footer>Config & AI are tweakable in the script block below.</footer>
 
 <script>
-/* ==============================
-   CONFIG (tweak freely)
-============================== */
-const CONFIG = {
-  startingRound: 1,
-  playerFirst: true,
-  modules: {
-    core:   { name:"Core", emoji:"❤️", hp:5, type:"Core" },
-    laser:  { name:"Laser", emoji:"💥", dmg:2, hp:3, type:"Weapon" },
-    shield: { name:"Shield", emoji:"🛡️", block:2, hp:2, type:"Defense", oncePerRound:true },
-  },
-  // Minimal modifier deck (infinite shuffle model)
-  // weights sum to 1.0
-  modifiers: [
-    { name:"Hit➕1",  short:"+1",  effect:"plus1",  weight:0.35 },
-    { name:"Crit×2",  short:"×2",  effect:"crit",   weight:0.20 },
-    { name:"Null",    short:"–",   effect:"null",   weight:0.25 },
-    { name:"Miss",    short:"0",   effect:"miss",   weight:0.20 }
-  ],
-  // AI target priority: weapon -> shield -> core
-  aiPriority: ["Weapon","Defense","Core"],
-  betweenTurnsDelayMs: 450
+/* -----------------------------
+   Seeded RNG (Mulberry32)
+--------------------------------*/
+let _seed = Math.floor(Math.random()*2**31);
+function sfc32(a){return function(){a|=0;a=a+0x9e3779b9|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
+let _rng = sfc32(_seed);
+function RNG(){ return _rng(); }
+function setSeed(s){ _seed = (s>>>0); _rng = sfc32(_seed); document.getElementById('seedOut').textContent = _seed; }
+
+/* -----------------------------
+   Config & Data
+--------------------------------*/
+const BUILD_ROUNDS = 3;
+const POINTS_PER_ROUND = 3;
+
+// Grid: 3x3, positions 0..8, Core at 4
+const CORE_POS = 4;
+const neigh = (i)=>{ const r=Math.floor(i/3), c=i%3;
+  const adj=[]; [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+    const nr=r+dr, nc=c+dc; if(nr>=0&&nr<3&&nc>=0&&nc<3) adj.push(nr*3+nc);
+  }); return adj;
+};
+const dist = (a,b)=> Math.abs(Math.floor(a/3)-Math.floor(b/3))+Math.abs(a%3 - b%3);
+
+const RANGE = { Short:1, Medium:2, Long:3 };
+
+const Modules = {
+  // name: { type, cost, hp, weaponDamage?, cooldownName?, range?, text }
+  Core:        { type:'Core',    cost:0, hp:5, text:'If destroyed, you lose.' },
+  Laser:       { type:'Weapon',  cost:1, hp:2, weaponDamage:2, range:RANGE.Medium, text:'2 dmg @ Medium' },
+  Cannon:      { type:'Weapon',  cost:2, hp:2, weaponDamage:3, range:RANGE.Short,  text:'3 dmg @ Short' },
+  Missile:     { type:'Weapon',  cost:3, hp:2, weaponDamage:4, range:RANGE.Long,   text:'4 dmg @ Long (reload)' },
+  Shield:      { type:'Defense', cost:1, hp:2, text:'Once/round block 2' },
+  Armor:       { type:'Defense', cost:1, hp:1, text:'+2 Core HP instantly' },
+  Engine:      { type:'Utility', cost:1, hp:1, text:'Auto-dodge next hit (consumes)' },
+  Reactor:     { type:'Utility', cost:2, hp:2, text:'+1 attack per turn' },
+  Cargo:       { type:'Utility', cost:1, hp:1, text:'Advantage: draw 2 modifiers' },
+  Repair:      { type:'Utility', cost:1, hp:1, text:'Action: heal 1' }
 };
 
-/* ==============================
+// Base 10-card modifier set
+const BaseModifiers = [
+  { key:'hit+1',  label:'➕1', apply:(ctx)=>{ ctx.total+=1; ctx.note.push('+1'); }}, // ×2
+  { key:'hit+1',  label:'➕1', apply:(ctx)=>{ ctx.total+=1; ctx.note.push('+1'); }},
+  { key:'hit+2',  label:'➕2', apply:(ctx)=>{ ctx.total+=2; ctx.note.push('+2'); }},
+  { key:'miss',   label:'Miss', apply:(ctx)=>{ ctx.missed=true; ctx.note.push('Miss'); }}, // ×2
+  { key:'miss',   label:'Miss', apply:(ctx)=>{ ctx.missed=true; ctx.note.push('Miss'); }},
+  { key:'crit',   label:'×2', apply:(ctx)=>{ ctx.mult*=2; ctx.note.push('×2'); }},
+  { key:'glance', label:'½', apply:(ctx)=>{ ctx.half=true; ctx.note.push('½'); }},
+  { key:'redirect', label:'↩️', apply:(ctx)=>{ ctx.redirect=true; ctx.note.push('Redirect'); }},
+  { key:'overheat', label:'🔥', apply:(ctx)=>{ ctx.overheat=true; ctx.note.push('Overheat'); }},
+  { key:'null',   label:'–', apply:(ctx)=>{ ctx.note.push('Null'); }}
+];
+
+// Expansion modifiers
+const ExpansionModifiers = [
+  { key:'pierce', label:'🎯', apply:(ctx)=>{ ctx.pierce=true; ctx.note.push('Pierce'); }},
+  { key:'chain',  label:'💥→', apply:(ctx)=>{ ctx.chain=true; ctx.note.push('Chain'); }},
+  { key:'emp',    label:'EMP', apply:(ctx)=>{ ctx.emp=true; ctx.note.push('EMP'); }},
+  { key:'overload', label:'💣', apply:(ctx)=>{ ctx.total+=3; ctx.overload=true; ctx.note.push('+3 & Destroy Weapon'); }},
+  { key:'rebound', label:'🔄', apply:(ctx)=>{ ctx.rebound=true; ctx.note.push('Rebound'); }},
+];
+
+function currentDeck(attacker){
+  const useExp = document.getElementById('expansionToggle').checked;
+  const base = BaseModifiers;
+  if (!useExp) return base;
+  // Merge (new array)
+  return base.concat(ExpansionModifiers);
+}
+
+// Cargo advantage: choose the “better” of two modifiers.
+// Rough heuristic: prefer higher resulting damage; pierce > crit > +2 > +1 > null > redirect > overheat > glance > miss.
+// If miss + rebound exists, treat as negative for attacker.
+function pickBetter(cardA, cardB){
+  const rank = (k)=>({
+    'pierce':90,'crit':80,'hit+2':70,'hit+1':60,'null':50,'redirect':40,'overheat':35,'glance':25,'emp':20,'chain':10,'overload':5,'rebound':1,'miss':0
+  })[k] ?? 0;
+  return (rank(cardA.key) >= rank(cardB.key)) ? cardA : cardB;
+}
+
+function drawOne(attackerHasCargo){
+  const deck = currentDeck();
+  const card = deck[Math.floor(RNG()*deck.length)];
+  if (!attackerHasCargo) return card;
+  const card2 = deck[Math.floor(RNG()*deck.length)];
+  return pickBetter(card, card2);
+}
+
+/* -----------------------------
    State
-============================== */
+--------------------------------*/
+function emptyShip(){
+  return {
+    coreHP: Modules.Core.hp,
+    grid: Array(9).fill(null),   // null or {name,hp,pos,cooldown}
+    flags: { shieldUsed:false, engineArmed:false }
+  };
+}
 const state = {
-  round: CONFIG.startingRound,
-  turn: CONFIG.playerFirst ? "you" : "ai",
-  you: null,
-  ai: null,
-  shieldsUsed: { you:false, ai:false },
+  phase:'build',
+  buildRound:1,
+  pointsLeft:POINTS_PER_ROUND,
+  player: emptyShip(),
+  ai:     emptyShip(),
+  sel: { placePick:'Laser', placePos:0, targetPos:CORE_POS, weaponPos:null }
 };
 
-function makeShip() {
-  return [
-    // Core (must exist)
-    { id: uid(), key:"core",   name: CONFIG.modules.core.name,   type: CONFIG.modules.core.type,   emoji:CONFIG.modules.core.emoji, maxHp: CONFIG.modules.core.hp, hp: CONFIG.modules.core.hp, alive:true },
-    // Weapon
-    { id: uid(), key:"laser",  name: CONFIG.modules.laser.name,  type: CONFIG.modules.laser.type,  emoji:CONFIG.modules.laser.emoji, dmg: CONFIG.modules.laser.dmg, maxHp: CONFIG.modules.laser.hp, hp: CONFIG.modules.laser.hp, alive:true },
-    // Shield
-    { id: uid(), key:"shield", name: CONFIG.modules.shield.name, type: CONFIG.modules.shield.type, emoji:CONFIG.modules.shield.emoji, block:CONFIG.modules.shield.block, oncePerRound:true, maxHp: CONFIG.modules.shield.hp, hp: CONFIG.modules.shield.hp, alive:true }
-  ];
-}
-
-function resetGame() {
-  state.round = CONFIG.startingRound;
-  state.turn = CONFIG.playerFirst ? "you" : "ai";
-  state.you = makeShip();
-  state.ai  = makeShip();
-  state.shieldsUsed = { you:false, ai:false };
+function resetGame(){
+  setSeed(Math.floor(Math.random()*2**31));
+  state.phase='build';
+  state.buildRound=1;
+  state.pointsLeft=POINTS_PER_ROUND;
+  state.player=emptyShip(); state.ai=emptyShip();
+  state.sel={ placePick:'Laser', placePos:0, targetPos:CORE_POS, weaponPos:null };
   clearLog();
-  log(`Game reset. Round ${state.round}. ${state.turn === "you" ? "You begin." : "AI begins."}`);
-  renderAll();
-  if (state.turn === "ai") aiTurn();
+  log(`<b>New game.</b> Build ${BUILD_ROUNDS} rounds, ${POINTS_PER_ROUND} pts each.`, 'accent');
+  renderAll(); renderShop();
 }
 
-/* ==============================
-   Rendering
-============================== */
-function renderAll() {
-  $("#roundNum").textContent = state.round;
-  $("#turnLabel").textContent = state.turn === "you" ? "Your turn" : "AI thinking…";
-  $("#turnLabel").className = "toast " + (state.turn === "you" ? "you" : "ai");
-  renderSide("you");
-  renderSide("ai");
-  $("#endTurnBtn").disabled = (state.turn !== "you");
+/* -----------------------------
+   Build Phase
+--------------------------------*/
+const shopList = ['Laser','Cannon','Missile','Shield','Armor','Engine','Reactor','Cargo','Repair'];
+
+function canPlace(ship, pos){
+  if (pos===CORE_POS) return false;
+  return ship.grid[pos]===null;
 }
 
-function renderSide(side) {
-  const holder = side === "you" ? $("#youCards") : $("#aiCards");
-  holder.innerHTML = "";
-  const ship = state[side];
-
-  for (const m of ship) {
-    const card = el("div","card");
-    const title = el("div","title", `${m.emoji} ${m.name}`);
-    const meta  = el("div","meta");
-    const hpbar = el("div","hpbar");
-    const hpfill= el("div","");
-    hpfill.style.width = Math.max(0, (m.hp/m.maxHp)*100) + "%";
-    hpbar.appendChild(hpfill);
-
-    // Status pills
-    meta.appendChild(pill(`${m.type}`));
-    meta.appendChild(pill(`HP ${m.hp}/${m.maxHp}`));
-
-    if (m.type === "Weapon") meta.appendChild(pill(`DMG ${m.dmg}`));
-    if (m.key === "shield") {
-      const used = state.shieldsUsed[side];
-      const cls = used ? "pill shieldOff" : "pill shieldOn";
-      meta.appendChild(el("span", cls, used ? "Shield used" : `🛡️${m.block} ready`));
-    }
-
-    // Controls (only for player's view / when player's turn)
-    const controls = el("div","controls");
-    if (state.turn === "you" && side === "ai" && alive(m)) {
-      const btn = el("button","",`Attack ${m.name}`);
-      btn.onclick = () => playerAttack(m.id);
-      // require your weapon alive
-      if (!getModule(state.you,"laser").alive || !alive(m)) btn.disabled = true;
-      controls.appendChild(btn);
-    }
-
-    card.appendChild(title);
-    card.appendChild(meta);
-    card.appendChild(hpbar);
-    if (controls.children.length) card.appendChild(controls);
-
-    // dead overlay?
-    if (!alive(m)) {
-      card.style.opacity = .55;
-      card.style.filter = "grayscale(0.5)";
-      card.appendChild(el("div","meta", "Destroyed"));
-    }
-
-    holder.appendChild(card);
+function placeModule(ship, name, pos){
+  const def = Modules[name];
+  ship.grid[pos] = { name, hp:def.hp, pos, cooldown:0 };
+  if (name==='Armor'){
+    ship.coreHP += 2;
+    log(`${ship===state.player?'You':'AI'} install <b>Armor</b>: Core +2 HP.`, 'good');
+  } else {
+    log(`${ship===state.player?'You':'AI'} place <b>${name}</b> at ${labelPos(pos)}.`);
   }
 }
 
-/* ==============================
-   Turn / Combat
-============================== */
-function playerAttack(targetId) {
-  if (state.turn !== "you") return;
-  const yourLaser = getModule(state.you,"laser");
-  if (!yourLaser.alive) { log("❌ Your Laser is destroyed.", "warn"); return; }
+function labelPos(i){ const r=Math.floor(i/3), c=i%3; return `(${r+1},${c+1})`; }
 
-  const target = state.ai.find(m=>m.id===targetId);
-  if (!target || !alive(target)) { log("❌ Invalid target.", "warn"); return; }
-
-  const base = yourLaser.dmg;
-  const mod  = drawModifier();
-  const dmg  = computeDamage(base, mod, state.shieldsUsed.ai, /*defenderHasShield*/ getModule(state.ai,"shield").alive);
-
-  applyDamage(target, dmg.applied);
-  if (dmg.shieldConsumed) state.shieldsUsed.ai = true;
-
-  log(`🧑 fires Laser at AI ${target.name} for base ${base}. Mod: ${mod.name} ⇒ ${dmg.final} raw, ${dmg.applied} applied${dmg.shieldConsumed ? " (🛡️ absorbed up to 2)" : ""}.`);
-
-  renderAll();
-  const win = checkWin();
-  if (win) return;
-
-  endTurnTo("ai");
-  setTimeout(aiTurn, CONFIG.betweenTurnsDelayMs);
+function playerBuy(name, pos){
+  const cost = Modules[name].cost;
+  if (cost>state.pointsLeft) return;
+  if (!canPlace(state.player, pos)) return;
+  placeModule(state.player, name, pos);
+  state.pointsLeft -= cost;
+  renderAll(); renderShop();
 }
 
-function aiTurn() {
-  if (state.turn !== "ai") return;
-
-  const aiLaser = getModule(state.ai,"laser");
-  if (!aiLaser.alive) {
-    log("🤖 AI’s Laser is destroyed; AI skips attack.");
-    endTurnTo("you");
-    return;
+function aiSpend(){
+  // Very simple heuristic: place strongest affordable, closer to core front (row 1/2/3 bias)
+  while(true){
+    const pts=state.pointsLeft;
+    const choices = shopList
+      .filter(n=>Modules[n].cost<=pts)
+      .map(n=>({n,score:score(n)}));
+    if (!choices.length) break;
+    choices.sort((a,b)=>b.score-a.score);
+    const pick = (RNG()<0.7)?choices[0]:choices[Math.floor(RNG()*choices.length)];
+    // pick a spot: prefer free cells with smallest distance to enemy core (row 2 toward player; but symmetric here)
+    const free = freeCells(state.ai);
+    if (!free.length) break;
+    free.sort((a,b)=>distToEnemy(b)-distToEnemy(a)); // prefer front (closer to enemy core)
+    placeModule(state.ai, pick.n, free[0]);
+    state.pointsLeft -= Modules[pick.n].cost;
   }
-
-  // choose best target: weapon -> shield -> core (alive)
-  const target = chooseAiTarget();
-  const base = aiLaser.dmg;
-  const mod  = drawModifier();
-  const dmg  = computeDamage(base, mod, state.shieldsUsed.you, /*defenderHasShield*/ getModule(state.you,"shield").alive);
-
-  applyDamage(target, dmg.applied);
-  if (dmg.shieldConsumed) state.shieldsUsed.you = true;
-
-  log(`🤖 AI fires Laser at your ${target.name} for base ${base}. Mod: ${mod.name} ⇒ ${dmg.final} raw, ${dmg.applied} applied${dmg.shieldConsumed ? " (🛡️ absorbed up to 2)" : ""}.`);
-
-  renderAll();
-  const win = checkWin();
-  if (win) return;
-
-  endTurnTo("you");
+  function score(n){
+    const m=Modules[n];
+    if (m.type==='Weapon') return 10+m.weaponDamage;
+    if (n==='Reactor') return 9;
+    if (n==='Shield') return 7;
+    if (n==='Engine') return 6;
+    if (n==='Cargo') return 5;
+    if (n==='Armor') return 4;
+    if (n==='Repair') return 3;
+    return 1;
+  }
+  function freeCells(ship){ return ship.grid.map((v,i)=>v?null:i).filter(x=>x!==null && x!==CORE_POS); }
+  function distToEnemy(cell){ return dist(cell, CORE_POS); }
 }
 
-function endTurnTo(who) {
-  state.turn = who;
-  renderAll();
+function endBuildRound(){
+  aiSpend();
+  if (state.buildRound<BUILD_ROUNDS){
+    state.buildRound++; state.pointsLeft=POINTS_PER_ROUND;
+    state.player.flags.shieldUsed=false; state.ai.flags.shieldUsed=false;
+    log(`<i>Build Round ${state.buildRound}.</i>`, 'accent');
+    renderAll(); renderShop();
+  } else {
+    state.phase='battle';
+    state.player.flags.shieldUsed=false; state.ai.flags.shieldUsed=false;
+    log(`<b>Battle phase begins.</b>`, 'accent');
+    renderAll(); renderShop();
+  }
 }
 
-function newRound() {
-  state.round += 1;
-  state.shieldsUsed = { you:false, ai:false };
-  log(`🔁 New round. Shields refreshed.`);
-  renderAll();
+/* -----------------------------
+   Battle Helpers
+--------------------------------*/
+function weapons(ship){
+  return ship.grid.filter(m=>m && Modules[m.name].type==='Weapon' && m.hp>0 && m.cooldown===0);
+}
+function has(ship, name){ return ship.grid.some(m=>m && m.name===name && m.hp>0); }
+function aliveModules(ship){ return ship.grid.filter(m=>m && m.hp>0); }
+
+function startTurn(){
+  // Reset shields, tick cooldowns
+  state.player.flags.shieldUsed=false; state.ai.flags.shieldUsed=false;
+  [state.player,state.ai].forEach(s=>s.grid.forEach(m=>{ if(m && m.cooldown>0) m.cooldown--; }));
 }
 
-function checkWin() {
-  const youCore = getModule(state.you,"core");
-  const aiCore  = getModule(state.ai,"core");
-  if (!aiCore.alive) { log("🏆 You destroyed the AI Core. You win!"); lockControls(); return true; }
-  if (!youCore.alive){ log("💥 Your Core was destroyed. AI wins."); lockControls(); return true; }
+function tryRepair(ship){
+  // heal core first, else first hurt module
+  // (max HP tracked implicitly by definition)
+  // Armor raises core max permanently; we won't cap here for simplicity.
+  if (ship.coreHP>0){
+    // Try a damaged module first (feels more useful)
+    for (const m of ship.grid){
+      if (!m) continue;
+      const max = Modules[m.name].hp;
+      if (m.hp>0 && m.hp<max){ m.hp++; return true; }
+    }
+    ship.coreHP++; return true;
+  }
   return false;
 }
 
-function lockControls() {
-  $("#endTurnBtn").disabled = true;
+function validTargets(attacker, defender, weaponModule){
+  const r = Modules[weaponModule.name].range || RANGE.Medium;
+  return defender.grid
+    .map((m,i)=>({i,m}))
+    .filter(x=>{
+      if (x.i===CORE_POS) return dist(weaponModule.pos, CORE_POS)<=r;
+      if (!x.m || x.m.hp<=0) return false;
+      return dist(weaponModule.pos, x.i)<=r;
+    })
+    .map(x=>x.i);
 }
 
-/* ==============================
-   Damage / Modifiers
-============================== */
-function drawModifier() {
-  // weighted random
-  const r = Math.random();
-  let acc=0;
-  for (const m of CONFIG.modifiers) {
-    acc += m.weight;
-    if (r <= acc) return m;
+function applyDamageToCell(defender, cell, dmg){
+  if (cell===CORE_POS){
+    defender.coreHP=Math.max(0, defender.coreHP - dmg);
+  } else {
+    const mod = defender.grid[cell];
+    if (!mod) return;
+    mod.hp = Math.max(0, mod.hp - dmg);
   }
-  return CONFIG.modifiers[CONFIG.modifiers.length-1];
 }
 
-function computeDamage(base, mod, defenderShieldUsed, defenderHasShield) {
-  let final = base;
-  if (mod.effect === "plus1") final += 1;
-  if (mod.effect === "crit")  final = base * 2;
-  if (mod.effect === "miss")  final = 0;
-  if (mod.effect === "null")  final = base; // no change
+function firstAliveModuleIndex(defender){
+  const idxs = defender.grid.map((m,i)=> (i!==CORE_POS && m && m.hp>0) ? i : null).filter(v=>v!==null);
+  if (!idxs.length) return CORE_POS;
+  return idxs[Math.floor(RNG()*idxs.length)];
+}
 
-  let applied = final;
-  let shieldConsumed = false;
-
-  if (final > 0 && defenderHasShield && !defenderShieldUsed) {
-    const block = CONFIG.modules.shield.block;
-    applied = Math.max(0, final - block);
-    shieldConsumed = true;
+/* -----------------------------
+   Attack Resolution (with all tweaks)
+--------------------------------*/
+function performAttack(attacker, defender, weaponCell, targetCell){
+  const weapon = attacker.grid[weaponCell];
+  if (!weapon || weapon.hp<=0) return;
+  const defW = Modules[weapon.name];
+  const r = defW.range||RANGE.Medium;
+  if (dist(weaponCell, targetCell)>r){
+    log(`${side(attacker)} ${weapon.name} out of range.`, 'warn'); return;
   }
-  return { final, applied, shieldConsumed };
-}
 
-function applyDamage(module, amount) {
-  if (amount <= 0 || !module.alive) return;
-  module.hp = Math.max(0, module.hp - amount);
-  if (module.hp === 0) module.alive = false;
-}
+  // Draw modifier (Cargo advantage)
+  const ctx = { base:defW.weaponDamage||0, total:defW.weaponDamage||0, mult:1, half:false, missed:false, overheat:false, redirect:false,
+                pierce:false, chain:false, emp:false, overload:false, rebound:false, note:[] };
+  const attackerHasCargo = has(attacker,'Cargo');
+  const card = drawOne(attackerHasCargo);
+  card.apply(ctx);
 
-/* ==============================
-   AI Targeting
-============================== */
-function chooseAiTarget() {
-  const priorities = CONFIG.aiPriority;
-  for (const pType of priorities) {
-    const cands = state.you.filter(m => m.type === pType && alive(m));
-    if (cands.length) {
-      // within type, prefer lowest HP to finish kills
-      cands.sort((a,b)=>a.hp-b.hp);
-      return cands[0];
+  // Rebound: if we MISS, we’ll reflect base damage back to attacker (handled later)
+  // MISS check before other effects (but Overload still destroys weapon only if hit; we’ll guard for that)
+  if (ctx.missed){
+    log(`${side(attacker)} attack <b>${weapon.name}</b>: <span class="warn">MISS</span> [${card.label}]`);
+    if (ctx.rebound){
+      const reflCell = firstAliveModuleIndex(attacker);
+      applyDamageToCell(attacker, reflCell, ctx.base);
+      log(`Rebound hits ${side(attacker)} ${cellLabel(attacker, reflCell)} for ${ctx.base}.`, 'bad');
+    }
+    return;
+  }
+
+  // Compute damage (crit / half)
+  let dmg = ctx.total;
+  if (ctx.mult!==1) dmg *= ctx.mult;
+  if (ctx.half) dmg = Math.floor(dmg/2);
+  if (dmg<0) dmg=0;
+
+  // Overheat: set cooldown 1
+  if (ctx.overheat) weapon.cooldown = Math.max(weapon.cooldown, 1);
+
+  // Missile reload always 1
+  if (weapon.name==='Missile') weapon.cooldown = Math.max(weapon.cooldown, 1);
+
+  // Redirect: switch target to random valid target on defender side
+  let redirected=false;
+  if (ctx.redirect){
+    const valids = validTargets(attacker, defender, weapon);
+    if (valids.length){ targetCell = valids[Math.floor(RNG()*valids.length)]; redirected=true; }
+  }
+
+  // Engine (defense): if defender has an Engine module (hp>0), auto-consume to dodge one incoming hit
+  const engineIndex = defender.grid.findIndex(m=>m && m.name==='Engine' && m.hp>0);
+  if (engineIndex>=0 && dmg>0){
+    // Consume Engine to cancel this attack entirely
+    defender.grid[engineIndex].hp = 0;
+    log(`${side(defender)} uses <b>Engine</b> to dodge! (consumed)`, 'good');
+    // still apply weapon side-effects like Overload after
+    if (ctx.overload){ weapon.hp=0; log(`${side(attacker)} weapon <b>${weapon.name}</b> destroyed by Overload.`, 'warn'); }
+    return;
+  }
+
+  // Shield (defense): once/round block up to 2 (ignored if Pierce)
+  if (!ctx.pierce && has(defender,'Shield') && !defender.flags.shieldUsed && dmg>0){
+    const block = Math.min(2, dmg);
+    defender.flags.shieldUsed=true; dmg -= block;
+    log(`${side(defender)} <b>Shield</b> blocks ${block}.`, 'good');
+  }
+
+  // Apply damage
+  const preHP = hpOf(defender, targetCell);
+  if (dmg>0) applyDamageToCell(defender, targetCell, dmg);
+
+  // EMP (expansion): if hitting a module, disable for 1 turn (cooldown=1)
+  if (ctx.emp && targetCell!==CORE_POS){
+    const tm = defender.grid[targetCell];
+    if (tm && tm.hp>0){ tm.cooldown = Math.max(tm.cooldown, 1); }
+  }
+
+  // Chain Reaction (expansion): if module destroyed by this hit, 1 splash to one adjacent module
+  if (ctx.chain && targetCell!==CORE_POS){
+    const tm = defender.grid[targetCell];
+    const wasDestroyed = preHP>0 && tm && tm.hp===0;
+    if (wasDestroyed){
+      const adj = neigh(targetCell).filter(i=> i!==CORE_POS && defender.grid[i] && defender.grid[i].hp>0);
+      if (adj.length){
+        const a = adj[Math.floor(RNG()*adj.length)];
+        applyDamageToCell(defender, a, 1);
+        log(`Chain Reaction deals 1 to adjacent ${cellLabel(defender,a)}.`, 'bad');
+      }
     }
   }
-  // fallback any alive
-  return state.you.find(alive);
-}
 
-/* ==============================
-   Helpers & DOM
-============================== */
-function alive(m){ return m && m.alive; }
-function uid(){ return Math.random().toString(36).slice(2,9); }
-function $(q){ return document.querySelector(q); }
-function el(tag, cls="", text=""){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
-function pill(text){ const s=el("span","pill"); s.textContent=text; return s; }
-
-function log(msg) {
-  const time = new Date().toLocaleTimeString();
-  $("#log").innerHTML += `[${time}] ${msg}<br/>`;
-  $("#log").scrollTop = $("#log").scrollHeight;
-}
-function clearLog(){ $("#log").textContent = ""; }
-
-/* ==============================
-   Wire up UI
-============================== */
-$("#endTurnBtn").addEventListener("click", ()=> {
-  if (state.turn === "you") {
-    endTurnTo("ai");
-    setTimeout(aiTurn, CONFIG.betweenTurnsDelayMs);
+  // Overload (expansion): if the attack HIT, destroy the weapon
+  if (ctx.overload){
+    weapon.hp=0;
+    log(`${side(attacker)} weapon <b>${weapon.name}</b> destroyed by Overload.`, 'warn');
   }
-});
-$("#newRoundBtn").addEventListener("click", newRound);
-$("#resetBtn").addEventListener("click", resetGame);
 
-/* boot */
+  const note = ctx.note.length? ` [${ctx.note.join(', ')}]` : '';
+  log(`${side(attacker)} ${weapon.name} → ${dmg} dmg on ${side(defender)} ${cellLabel(defender,targetCell)}${redirected?' (Redirected)':''}${note}`, dmg>0?'bad':'warn');
+}
+
+function hpOf(ship, cell){
+  if (cell===CORE_POS) return ship.coreHP;
+  const m=ship.grid[cell]; return m?m.hp:0;
+}
+
+function side(ship){ return ship===state.player ? 'You' : 'AI'; }
+function cellLabel(ship, cell){
+  if (cell===CORE_POS) return 'Core';
+  const m = ship.grid[cell];
+  return m ? `${m.name}@${labelPos(cell)}` : `Empty@${labelPos(cell)}`;
+}
+
+/* -----------------------------
+   Turn flow
+--------------------------------*/
+function playerTurn(){
+  startTurn();
+  renderAll(); // buttons let player act
+}
+
+function endPlayerTurn(){
+  if (isDone()) return finish();
+  aiTurn();
+}
+
+function aiTurn(){
+  startTurn();
+  let attacks = 1 + (has(state.ai,'Reactor')?1:0);
+  const weps = weapons(state.ai).sort((a,b)=>(Modules[b.name].weaponDamage||0)-(Modules[a.name].weaponDamage||0));
+  while(attacks>0 && !isDone()){
+    if (has(state.ai,'Repair') && RNG()<0.25){
+      if (tryRepair(state.ai)) log(`AI uses <b>Repair Drone</b> (+1).`, 'good');
+    } else if (weps.length){
+      const w=weps[0]; // best
+      // target: prefer Core if in range else nearest module
+      const valids = validTargets(state.ai, state.player, w);
+      let target = CORE_POS;
+      if (valids.indexOf(CORE_POS)===-1){
+        // choose lowest HP target in range
+        const candidates = valids.filter(i=>i!==CORE_POS).sort((a,b)=>hpOf(state.player,a)-hpOf(state.player,b));
+        if (candidates.length) target = candidates[0];
+      }
+      performAttack(state.ai, state.player, w.pos, target);
+    }
+    attacks--;
+  }
+  renderAll();
+  if (isDone()) finish();
+}
+
+function isDone(){ return state.player.coreHP<=0 || state.ai.coreHP<=0; }
+function finish(){
+  if (state.player.coreHP<=0 && state.ai.coreHP<=0) log(`<b>Both cores destroyed — Draw.</b>`, 'warn');
+  else if (state.ai.coreHP<=0) log(`<b>You win!</b>`, 'good');
+  else if (state.player.coreHP<=0) log(`<b>AI wins.</b>`, 'bad');
+  disableNonSeedButtons();
+}
+
+/* -----------------------------
+   UI
+--------------------------------*/
+function renderAll(){
+  // header pills
+  el('phaseInfo').textContent = `Phase: ${state.phase}`;
+  el('roundInfo').textContent = state.phase==='build' ? `Build ${state.buildRound}/${BUILD_ROUNDS}` : `Battle`;
+  el('pointsInfo').textContent = state.phase==='build' ? `Points: ${state.pointsLeft}` : '—';
+
+  renderGrid('playerGrid', state.player, true);
+  renderGrid('aiGrid', state.ai, false);
+  renderShop();
+  renderBattleUI();
+}
+
+function renderGrid(containerId, ship, isPlayer){
+  const g = el(containerId); g.innerHTML='';
+  for(let i=0;i<9;i++){
+    const cell = document.createElement('div');
+    cell.className='cell'+(i===CORE_POS?' core':'');
+    const it = (i===CORE_POS)? {name:'Core', hp:ship.coreHP} : ship.grid[i];
+    if (i===CORE_POS){
+      cell.innerHTML=`<div class="mod"><b>Core</b></div><div class="hp">❤️ ${ship.coreHP}</div>`;
+    } else if (it){
+      const def = Modules[it.name];
+      const cd = it.cooldown>0 ? ` <span class="pill warn">CD:${it.cooldown}</span>`:'';
+      cell.innerHTML=`<div class="mod"><b>${it.name}</b><br><small class="sub">${def.text}</small>${cd}</div><div class="hp">HP ${it.hp}/${def.hp}</div>`;
+    } else {
+      cell.innerHTML=`<div class="mod sub">Empty</div>`;
+      if (state.phase==='build' && isPlayer){
+        // clickable placement helper
+        cell.style.cursor='pointer';
+        cell.title='Click to place selected module here';
+        cell.onclick=()=>{
+          const name = state.sel.placePick;
+          if (!name) return;
+          playerBuy(name, i);
+        };
+      }
+    }
+    g.appendChild(cell);
+  }
+}
+
+function renderShop(){
+  const shop = el('shop'); shop.innerHTML='';
+  if (state.phase!=='build'){
+    shop.innerHTML='<div class="sub">(Build phase over)</div>';
+    el('endBuildBtn').disabled=true;
+    return;
+  }
+  el('endBuildBtn').disabled=false;
+
+  // selector row
+  const selRow = document.createElement('div');
+  selRow.className='row';
+  const sel = document.createElement('select');
+  shopList.forEach(n=>{
+    const opt=document.createElement('option'); opt.value=n; opt.textContent=`${n} (${Modules[n].cost})`;
+    sel.appendChild(opt);
+  });
+  sel.value=state.sel.placePick; sel.onchange=(e)=>{state.sel.placePick=e.target.value;};
+  selRow.appendChild(sel);
+  shop.appendChild(selRow);
+
+  // cards (affordability)
+  shopList.forEach(n=>{
+    const m=Modules[n]; const card=document.createElement('div'); card.className='card';
+    const left=document.createElement('div'); left.innerHTML=`<div class="name"><b>${n}</b> <small class="sub">(${m.text})</small></div>`;
+    const right=document.createElement('div');
+    const b=document.createElement('button'); b.textContent=`Pick (${m.cost})`;
+    b.disabled = m.cost>state.pointsLeft;
+    b.onclick=()=>{ state.sel.placePick=n; };
+    right.appendChild(b);
+    card.appendChild(left); card.appendChild(right);
+    shop.appendChild(card);
+  });
+}
+
+function renderBattleUI(){
+  const actions = el('battleActions'); actions.innerHTML='';
+  const targets = el('targetsRow'); targets.innerHTML='';
+
+  if (state.phase!=='battle'){
+    actions.innerHTML='<span class="sub">Build first, then battle.</span>';
+    targets.innerHTML='<span class="sub">(Targets appear in battle)</span>';
+    return;
+  }
+
+  // Build weapon dropdown for player (list weapons ready + range preview)
+  const ready = weapons(state.player);
+  const sel = document.createElement('select');
+  ready.forEach(w=>{
+    const r = Modules[w.name].range || RANGE.Medium;
+    const txt = `${w.name} (d${Modules[w.name].weaponDamage} @ ${r===1?'S':r===2?'M':'L'})`;
+    const opt=document.createElement('option'); opt.value=w.pos; opt.textContent=txt; sel.appendChild(opt);
+  });
+  if (ready.length) state.sel.weaponPos = ready[0].pos;
+  sel.onchange=(e)=> state.sel.weaponPos=parseInt(e.target.value,10);
+  actions.appendChild(sel);
+
+  // Target buttons: valid cells based on the chosen weapon
+  function drawTargets(){
+    targets.innerHTML='';
+    if (state.sel.weaponPos==null){ targets.innerHTML='<span class="sub">No ready weapons.</span>'; return; }
+    const w = state.player.grid[state.sel.weaponPos];
+    const valids = validTargets(state.player, state.ai, w);
+    valids.forEach(i=>{
+      const b=document.createElement('button'); b.textContent= i===CORE_POS ? 'Core' : (state.ai.grid[i]? `${state.ai.grid[i].name}@${labelPos(i)}` : `Empty@${labelPos(i)}`);
+      b.onclick=()=> state.sel.targetPos=i;
+      targets.appendChild(b);
+    });
+  }
+  drawTargets();
+
+  // Attack button(s)
+  const swings = 1 + (has(state.player,'Reactor')?1:0);
+  const atkBtn = document.createElement('button'); atkBtn.textContent=`Attack (${swings}x)`;
+  atkBtn.disabled = ready.length===0;
+  atkBtn.onclick=()=>{
+    let t=swings;
+    while(t>0 && !isDone()){
+      if (state.sel.weaponPos==null) break;
+      performAttack(state.player, state.ai, state.sel.weaponPos, state.sel.targetPos ?? CORE_POS);
+      renderAll(); // refresh cooldown/HP
+      t--;
+    }
+    if (!isDone()) endPlayerTurn(); else finish();
+  };
+  actions.appendChild(atkBtn);
+
+  // Repair action
+  const repBtn=document.createElement('button'); repBtn.textContent='Repair +1';
+  repBtn.disabled = !has(state.player,'Repair');
+  repBtn.onclick=()=>{
+    if (tryRepair(state.player)) { log(`You use <b>Repair Drone</b> (+1).`, 'good'); endPlayerTurn(); }
+  };
+  actions.appendChild(repBtn);
+
+  // End turn
+  const endBtn=document.createElement('button'); endBtn.textContent='End Turn';
+  endBtn.onclick=endPlayerTurn;
+  actions.appendChild(endBtn);
+}
+
+/* -----------------------------
+   Log & utils
+--------------------------------*/
+function el(id){ return document.getElementById(id); }
+function clearLog(){ el('log').innerHTML=''; }
+function log(msg, cls=''){ const p=document.createElement('p'); if(cls) p.className=cls; p.innerHTML=msg; el('log').appendChild(p); el('log').scrollTop=el('log').scrollHeight; }
+
+/* -----------------------------
+   Quick Simulations (AI vs AI)
+--------------------------------*/
+function cloneStateSetup(){
+  // shallow copy setup (built ships); we’ll simulate battle only from this layout/opts
+  return JSON.stringify({
+    player: state.player, ai: state.ai,
+    expansion: el('expansionToggle').checked
+  });
+}
+function restoreSetup(json){
+  const o=JSON.parse(json);
+  const s=()=>emptyShip();
+  state.player=o.player; state.ai=o.ai;
+  el('expansionToggle').checked=o.expansion;
+  state.phase='battle'; // sims assume battle-ready
+}
+function runSimOnce(setupJSON, seed){
+  setSeed(seed);
+  restoreSetup(setupJSON);
+  // simple auto battle loop
+  let turn=0; let guard=200;
+  while(!isDone() && guard--){
+    // player AI (mirror of aiTurn but both sides AI)
+    startTurn();
+    let a = 1 + (has(state.player,'Reactor')?1:0);
+    const wepsP = weapons(state.player).sort((a,b)=>(Modules[b.name].weaponDamage||0)-(Modules[a.name].weaponDamage||0));
+    while(a>0 && !isDone()){
+      if (has(state.player,'Repair') && RNG()<0.25) { tryRepair(state.player); }
+      else if (wepsP.length){
+        const w=wepsP[0];
+        const valids=validTargets(state.player,state.ai,w);
+        let tgt=CORE_POS;
+        if (valids.indexOf(CORE_POS)===-1){
+          const cand=valids.filter(i=>i!==CORE_POS).sort((x,y)=>hpOf(state.ai,x)-hpOf(state.ai,y));
+          if (cand.length) tgt=cand[0];
+        }
+        performAttack(state.player,state.ai,w.pos,tgt);
+      }
+      a--;
+    }
+    if (isDone()) break;
+    // AI side
+    aiTurn();
+    turn++;
+    if (turn>100) break;
+  }
+  return state.ai.coreHP<=0 ? (state.player.coreHP<=0 ? 0.5 : 1) : (state.player.coreHP<=0 ? 0 : 0.5);
+}
+function runSims(n){
+  const setup = cloneStateSetup();
+  let w=0, d=0;
+  for(let i=0;i<n;i++){
+    const r = runSimOnce(setup, Math.floor(Math.random()*2**31));
+    if (r===1) w++; else if (r===0.5) d++;
+  }
+  const l=n-w-d;
+  el('simOut').textContent = `P(win): ${(w/n*100).toFixed(1)}%  • draw: ${(d/n*100).toFixed(1)}%  • loss: ${(l/n*100).toFixed(1)}%`;
+}
+
+/* -----------------------------
+   Wire-up
+--------------------------------*/
+el('newGameBtn').onclick = resetGame;
+el('endBuildBtn').onclick = endBuildRound;
+el('runSimBtn').onclick = ()=> runSims(parseInt(el('simN').value||'100',10));
+el('setSeedBtn').onclick = ()=> {
+  const v = parseInt(el('seedIn').value||'0',10);
+  if (Number.isFinite(v)) setSeed(v>>>0);
+};
+
+// boot
 resetGame();
 </script>
 </body>
