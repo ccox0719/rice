@@ -1,469 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cosmoteer: Card Duel – PnP Test</title>
+<title>Cosmoteer – Minimal vs AI</title>
 <style>
-  :root{
-    --bg:#0f1115;--surface:#171a21;--muted:#9aa7b2;--text:#e8edf2;--accent:#45dfbf;--bad:#ff6b6b;--good:#7bd88f;
-    --radius:14px;--gap:12px;--shadow:0 6px 24px rgba(0,0,0,.35)
+  :root {
+    --bg:#0e0f14; --panel:#151823; --card:#1c2030; --accent:#6ee7ff; --accent2:#ffd166;
+    --good:#4ade80; --bad:#f87171; --muted:#94a3b8; --text:#e6edf3;
   }
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
-  header{padding:16px 20px;background:linear-gradient(180deg,#141823,#10131a)}
-  header h1{margin:0;font-size:20px;letter-spacing:.5px}
-  main{padding:20px;display:grid;gap:var(--gap);grid-template-columns: 300px 1fr;align-items:start}
-  .panel{background:var(--surface);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
-  h2{margin:.2rem 0 .6rem;font-size:16px;color:var(--muted);font-weight:600}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .stat{padding:8px 10px;border-radius:10px;background:#10141d;min-width:80px;text-align:center}
-  .stat b{display:block;font-size:18px}
-  .track{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-  .pill{padding:6px 10px;border-radius:999px;background:#0e131c;color:var(--muted);border:1px solid #1f2a39}
-  .controls label{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 10px;border:1px solid #263042;border-radius:10px;background:#121722}
-  .controls label span{opacity:.9}
-  .controls .cost{color:var(--muted);font-size:12px}
-  .controls .sub{margin-left:28px;margin-top:-6px;margin-bottom:6px}
-  button{appearance:none;background:var(--accent);border:none;color:#07221b;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer}
-  button.secondary{background:#222b38;color:var(--text)}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  .log{height:340px;overflow:auto;padding:10px;background:#0e131b;border-radius:10px;border:1px solid #1f2837}
-  .log p{margin:.35rem 0}
-  .divider{height:1px;background:#212a39;margin:8px 0}
-  .inline{display:inline-block;margin-left:6px}
-  .bad{color:var(--bad)} .good{color:var(--good)}
-  .footer{opacity:.75;font-size:12px;text-align:center;margin-top:6px}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0e0f14,#0c101a 40%,#0a0f18);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  header{padding:12px 16px;border-bottom:1px solid #1f2433;background:#0e121b;position:sticky;top:0;z-index:2}
+  header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.3px}
+  main{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:12px}
+  .row{display:grid;grid-template-columns:1fr 280px;gap:12px}
+  .arena{background:var(--panel);border:1px solid #22283a;border-radius:10px;padding:12px;display:grid;gap:12px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .side h3{margin:0 0 6px 0;font-size:14px;color:var(--muted);font-weight:600}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .card{background:var(--card);border:1px solid #283147;border-radius:10px;padding:10px;display:grid;gap:8px;position:relative;min-height:110px}
+  .title{display:flex;align-items:center;gap:6px;font-weight:700}
+  .hpbar{height:8px;background:#2a3348;border-radius:999px;overflow:hidden}
+  .hpbar>div{height:100%;background:linear-gradient(90deg,var(--good),#22c55e);width:100%}
+  .meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  button{appearance:none;background:#1f2638;color:var(--text);border:1px solid #2b3550;border-radius:8px;padding:8px 10px;font-weight:600;cursor:pointer}
+  button:hover{border-color:#3b4a73}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:#1a2233;border:1px solid #27314a;border-radius:999px;padding:4px 8px;font-size:12px}
+  .shieldOn{color:#cffafe}
+  .shieldOff{color:#94a3b8;text-decoration:line-through}
+  aside{background:var(--panel);border:1px solid #22283a;border-radius:10px;padding:12px;display:grid;gap:10px;height:fit-content;position:sticky;top:64px}
+  .log{background:#0f1420;border:1px solid #1e2740;border-radius:8px;min-height:160px;max-height:320px;overflow:auto;padding:8px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.4}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .toast{padding:8px 10px;background:#111829;border:1px solid #203052;border-radius:8px}
+  .you{border-left:4px solid var(--accent);padding-left:8px}
+  .ai{border-left:4px solid var(--accent2);padding-left:8px}
+  footer{padding:12px 16px;color:#94a3b8;text-align:center}
 </style>
 </head>
 <body>
-<header><h1>🚀 Cosmoteer: Card Duel — Solo Test vs AI</h1></header>
-
+<header><h1>Cosmoteer (Minimal) — Human vs AI</h1></header>
 <main>
-  <!-- LEFT: Player controls -->
-  <section class="panel">
-    <h2>Your Ship — Assign for this Round</h2>
-    <div class="row">
-      <div class="stat"><small>Reactor HP</small><b id="p-reactor">3</b></div>
-      <div class="stat"><small>Crew Alive</small><b id="p-crew">3</b></div>
-      <div class="stat"><small>Energy (this round)</small><b id="p-energy">3</b></div>
-      <div class="stat"><small>Round</small><b id="round">1</b></div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="row track">
-      <span class="pill">Distance: <b id="distance" class="inline">3</b></span>
-      <span class="pill">Shields <span id="shieldState">ON</span> until R15</span>
-      <span class="pill">Late-game +1 to hit from R16</span>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="controls">
-      <label>
-        <span>🛡️ Shield Generator <span class="cost">cost: 1⚡ + 1👩‍🚀 — blocks on 6 (off after R15)</span></span>
-        <input type="checkbox" id="act-shield">
-      </label>
-
-      <label>
-        <span>🚀 Engine (move ±2) <span class="cost">cost: 1⚡ + 1👩‍🚀</span></span>
-        <input type="checkbox" id="act-engine">
-      </label>
-      <div class="sub">
-        <label class="row">
-          <span style="min-width:80px;">Direction:</span>
-          <select id="engine-dir">
-            <option value="closer">Closer (-2)</option>
-            <option value="farther">Farther (+2)</option>
-            <option value="auto" selected>Auto (AI decides)</option>
-          </select>
-        </label>
+  <div class="row">
+    <section class="arena">
+      <div class="row2">
+        <div class="toast you" id="turnLabel">Your turn</div>
+        <div class="toast">Round <span id="roundNum">1</span> • Modifier Deck: <span id="deckLeft">∞</span></div>
       </div>
-
-      <label>
-        <span>🔴 Laser (1 dmg to reactor) — Range 1–3 — hit 4+ (3+ late-game)
-          <span class="cost">cost: 1⚡ + 1👩‍🚀</span></span>
-        <input type="checkbox" id="act-laser">
-      </label>
-
-      <label>
-        <span>🟠 Cannon (kill 1 crew) — Range 1–3 — hit 4+ (3+ late-game)
-          <span class="cost">cost: 2⚡ + 1👩‍🚀</span></span>
-        <input type="checkbox" id="act-cannon">
-      </label>
-
-      <label>
-        <span>💥 Missile (2 dmg) — Range 2–6 — hit 3+ (2+ late-game) — Ammo: <b id="p-missiles">2</b>
-          <span class="cost">cost: 2⚡ + 1👩‍🚀</span></span>
-        <input type="checkbox" id="act-missile">
-      </label>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="row">
-      <button id="btn-resolve">Resolve Round</button>
-      <button class="secondary" id="btn-reset">New Game</button>
-    </div>
-    <p class="footer">Tip: You have 3 energy and 3 crew per round. Each selected system consumes both (as listed).</p>
-  </section>
-
-  <!-- RIGHT: Status + Log -->
-  <section class="panel">
-    <h2>Battle Status</h2>
-    <div class="row" style="gap:16px;flex-wrap:wrap">
-      <div class="panel" style="flex:1;min-width:240px;background:#121722">
-        <h2>🧑‍🚀 You</h2>
-        <div class="row">
-          <div class="stat"><small>Reactor</small><b id="p-reactor2">3</b></div>
-          <div class="stat"><small>Crew</small><b id="p-crew2">3</b></div>
-          <div class="stat"><small>Missiles</small><b id="p-missiles2">2</b></div>
+      <div class="cols">
+        <div class="side" id="youSide">
+          <h3>🧑 Your Ship</h3>
+          <div class="cards" id="youCards"></div>
+        </div>
+        <div class="side" id="aiSide">
+          <h3>🤖 AI Ship</h3>
+          <div class="cards" id="aiCards"></div>
         </div>
       </div>
-      <div class="panel" style="flex:1;min-width:240px;background:#121722">
-        <h2>🤖 AI</h2>
-        <div class="row">
-          <div class="stat"><small>Reactor</small><b id="e-reactor">3</b></div>
-          <div class="stat"><small>Crew</small><b id="e-crew">3</b></div>
-          <div class="stat"><small>Missiles</small><b id="e-missiles">2</b></div>
-        </div>
+    </section>
+    <aside>
+      <div class="row2">
+        <button id="endTurnBtn">End Turn</button>
+        <button id="newRoundBtn">New Round</button>
       </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <h2>Combat Log</h2>
-    <div class="log" id="log"></div>
+      <button id="resetBtn">Reset Game</button>
+      <div class="log" id="log"></div>
+    </aside>
+  </div>
+  <section class="toast">
+    <b>How to play (minimal rules)</b><br/>
+    • You and the AI each have: Core (❤️5), Laser (💥2), Shield (🛡️2 once/round).<br/>
+    • On your turn, pick an enemy module to attack with your Laser. A modifier is drawn (Hit➕1, Miss, Crit×2, Null).<br/>
+    • The defender’s Shield (if unused this round) blocks up to 2 damage automatically, once per round.<br/>
+    • Destroy the enemy Core to win. New Round refreshes shields on both sides.
   </section>
 </main>
+<footer>Config & AI are tweakable in the script block below.</footer>
 
 <script>
-/* ==========================================================
-   Cosmoteer: Card Duel — Solo Test vs AI
-   Rules baked in:
-   - Start distance 3
-   - Energy 3 / Crew 3 per round
-   - Shields: block on 6, cannot be powered from Round 16+
-   - Late game +1 to hit from Round 16
-   - Simultaneous resolution (movement then attacks)
-   - Victory: reactor<=0 OR crew<=0
-========================================================== */
-
-const state = {
-  round: 1,
-  distance: 3,
-  // Player
-  p: { reactor: 3, crew: 3, missiles: 2, shieldOn: false },
-  // Enemy (AI)
-  e: { reactor: 3, crew: 3, missiles: 2, shieldOn: false },
+/* ==============================
+   CONFIG (tweak freely)
+============================== */
+const CONFIG = {
+  startingRound: 1,
+  playerFirst: true,
+  modules: {
+    core:   { name:"Core", emoji:"❤️", hp:5, type:"Core" },
+    laser:  { name:"Laser", emoji:"💥", dmg:2, hp:3, type:"Weapon" },
+    shield: { name:"Shield", emoji:"🛡️", block:2, hp:2, type:"Defense", oncePerRound:true },
+  },
+  // Minimal modifier deck (infinite shuffle model)
+  // weights sum to 1.0
+  modifiers: [
+    { name:"Hit➕1",  short:"+1",  effect:"plus1",  weight:0.35 },
+    { name:"Crit×2",  short:"×2",  effect:"crit",   weight:0.20 },
+    { name:"Null",    short:"–",   effect:"null",   weight:0.25 },
+    { name:"Miss",    short:"0",   effect:"miss",   weight:0.20 }
+  ],
+  // AI target priority: weapon -> shield -> core
+  aiPriority: ["Weapon","Defense","Core"],
+  betweenTurnsDelayMs: 450
 };
 
-const el = sel => document.querySelector(sel);
-const logEl = el('#log');
+/* ==============================
+   State
+============================== */
+const state = {
+  round: CONFIG.startingRound,
+  turn: CONFIG.playerFirst ? "you" : "ai",
+  you: null,
+  ai: null,
+  shieldsUsed: { you:false, ai:false },
+};
 
-function clamp(val, min, max){ return Math.max(min, Math.min(max, val)); }
-function d6(){ return Math.floor(Math.random()*6)+1; }
-
-function resetGame(){
-  state.round = 1;
-  state.distance = 3;
-  state.p = { reactor: 3, crew: 3, missiles: 2, shieldOn: false };
-  state.e = { reactor: 3, crew: 3, missiles: 2, shieldOn: false };
-  logEl.innerHTML = '';
-  write(`🆕 New game started. Distance = 3. Shields active until end of Round 15. Late-game +1 to hit begins Round 16.`);
-  render();
+function makeShip() {
+  return [
+    // Core (must exist)
+    { id: uid(), key:"core",   name: CONFIG.modules.core.name,   type: CONFIG.modules.core.type,   emoji:CONFIG.modules.core.emoji, maxHp: CONFIG.modules.core.hp, hp: CONFIG.modules.core.hp, alive:true },
+    // Weapon
+    { id: uid(), key:"laser",  name: CONFIG.modules.laser.name,  type: CONFIG.modules.laser.type,  emoji:CONFIG.modules.laser.emoji, dmg: CONFIG.modules.laser.dmg, maxHp: CONFIG.modules.laser.hp, hp: CONFIG.modules.laser.hp, alive:true },
+    // Shield
+    { id: uid(), key:"shield", name: CONFIG.modules.shield.name, type: CONFIG.modules.shield.type, emoji:CONFIG.modules.shield.emoji, block:CONFIG.modules.shield.block, oncePerRound:true, maxHp: CONFIG.modules.shield.hp, hp: CONFIG.modules.shield.hp, alive:true }
+  ];
 }
 
-function write(html){ logEl.insertAdjacentHTML('beforeend', `<p>${html}</p>`); logEl.scrollTop = logEl.scrollHeight; }
-
-function render(){
-  el('#round').textContent = state.round;
-  el('#distance').textContent = state.distance;
-  el('#shieldState').textContent = state.round <= 15 ? 'ON' : 'OFF';
-
-  // Player panel left
-  el('#p-reactor').textContent = state.p.reactor;
-  el('#p-crew').textContent = state.p.crew;
-  el('#p-energy').textContent = 3;
-  el('#p-missiles').textContent = state.p.missiles;
-
-  // Status cards
-  el('#p-reactor2').textContent = state.p.reactor;
-  el('#p-crew2').textContent = state.p.crew;
-  el('#p-missiles2').textContent = state.p.missiles;
-  el('#e-reactor').textContent = state.e.reactor;
-  el('#e-crew').textContent = state.e.crew;
-  el('#e-missiles').textContent = state.e.missiles;
-
-  // Disable shield checkbox after R15
-  el('#act-shield').disabled = state.round >= 16;
-
-  // Disable resolve if game over
-  const over = isOver();
-  el('#btn-resolve').disabled = over;
+function resetGame() {
+  state.round = CONFIG.startingRound;
+  state.turn = CONFIG.playerFirst ? "you" : "ai";
+  state.you = makeShip();
+  state.ai  = makeShip();
+  state.shieldsUsed = { you:false, ai:false };
+  clearLog();
+  log(`Game reset. Round ${state.round}. ${state.turn === "you" ? "You begin." : "AI begins."}`);
+  renderAll();
+  if (state.turn === "ai") aiTurn();
 }
 
-function isOver(){
-  const pDead = state.p.reactor <= 0 || state.p.crew <= 0;
-  const eDead = state.e.reactor <= 0 || state.e.crew <= 0;
-  if(pDead && eDead) return true;
-  if(pDead || eDead) return true;
+/* ==============================
+   Rendering
+============================== */
+function renderAll() {
+  $("#roundNum").textContent = state.round;
+  $("#turnLabel").textContent = state.turn === "you" ? "Your turn" : "AI thinking…";
+  $("#turnLabel").className = "toast " + (state.turn === "you" ? "you" : "ai");
+  renderSide("you");
+  renderSide("ai");
+  $("#endTurnBtn").disabled = (state.turn !== "you");
+}
+
+function renderSide(side) {
+  const holder = side === "you" ? $("#youCards") : $("#aiCards");
+  holder.innerHTML = "";
+  const ship = state[side];
+
+  for (const m of ship) {
+    const card = el("div","card");
+    const title = el("div","title", `${m.emoji} ${m.name}`);
+    const meta  = el("div","meta");
+    const hpbar = el("div","hpbar");
+    const hpfill= el("div","");
+    hpfill.style.width = Math.max(0, (m.hp/m.maxHp)*100) + "%";
+    hpbar.appendChild(hpfill);
+
+    // Status pills
+    meta.appendChild(pill(`${m.type}`));
+    meta.appendChild(pill(`HP ${m.hp}/${m.maxHp}`));
+
+    if (m.type === "Weapon") meta.appendChild(pill(`DMG ${m.dmg}`));
+    if (m.key === "shield") {
+      const used = state.shieldsUsed[side];
+      const cls = used ? "pill shieldOff" : "pill shieldOn";
+      meta.appendChild(el("span", cls, used ? "Shield used" : `🛡️${m.block} ready`));
+    }
+
+    // Controls (only for player's view / when player's turn)
+    const controls = el("div","controls");
+    if (state.turn === "you" && side === "ai" && alive(m)) {
+      const btn = el("button","",`Attack ${m.name}`);
+      btn.onclick = () => playerAttack(m.id);
+      // require your weapon alive
+      if (!getModule(state.you,"laser").alive || !alive(m)) btn.disabled = true;
+      controls.appendChild(btn);
+    }
+
+    card.appendChild(title);
+    card.appendChild(meta);
+    card.appendChild(hpbar);
+    if (controls.children.length) card.appendChild(controls);
+
+    // dead overlay?
+    if (!alive(m)) {
+      card.style.opacity = .55;
+      card.style.filter = "grayscale(0.5)";
+      card.appendChild(el("div","meta", "Destroyed"));
+    }
+
+    holder.appendChild(card);
+  }
+}
+
+/* ==============================
+   Turn / Combat
+============================== */
+function playerAttack(targetId) {
+  if (state.turn !== "you") return;
+  const yourLaser = getModule(state.you,"laser");
+  if (!yourLaser.alive) { log("❌ Your Laser is destroyed.", "warn"); return; }
+
+  const target = state.ai.find(m=>m.id===targetId);
+  if (!target || !alive(target)) { log("❌ Invalid target.", "warn"); return; }
+
+  const base = yourLaser.dmg;
+  const mod  = drawModifier();
+  const dmg  = computeDamage(base, mod, state.shieldsUsed.ai, /*defenderHasShield*/ getModule(state.ai,"shield").alive);
+
+  applyDamage(target, dmg.applied);
+  if (dmg.shieldConsumed) state.shieldsUsed.ai = true;
+
+  log(`🧑 fires Laser at AI ${target.name} for base ${base}. Mod: ${mod.name} ⇒ ${dmg.final} raw, ${dmg.applied} applied${dmg.shieldConsumed ? " (🛡️ absorbed up to 2)" : ""}.`);
+
+  renderAll();
+  const win = checkWin();
+  if (win) return;
+
+  endTurnTo("ai");
+  setTimeout(aiTurn, CONFIG.betweenTurnsDelayMs);
+}
+
+function aiTurn() {
+  if (state.turn !== "ai") return;
+
+  const aiLaser = getModule(state.ai,"laser");
+  if (!aiLaser.alive) {
+    log("🤖 AI’s Laser is destroyed; AI skips attack.");
+    endTurnTo("you");
+    return;
+  }
+
+  // choose best target: weapon -> shield -> core (alive)
+  const target = chooseAiTarget();
+  const base = aiLaser.dmg;
+  const mod  = drawModifier();
+  const dmg  = computeDamage(base, mod, state.shieldsUsed.you, /*defenderHasShield*/ getModule(state.you,"shield").alive);
+
+  applyDamage(target, dmg.applied);
+  if (dmg.shieldConsumed) state.shieldsUsed.you = true;
+
+  log(`🤖 AI fires Laser at your ${target.name} for base ${base}. Mod: ${mod.name} ⇒ ${dmg.final} raw, ${dmg.applied} applied${dmg.shieldConsumed ? " (🛡️ absorbed up to 2)" : ""}.`);
+
+  renderAll();
+  const win = checkWin();
+  if (win) return;
+
+  endTurnTo("you");
+}
+
+function endTurnTo(who) {
+  state.turn = who;
+  renderAll();
+}
+
+function newRound() {
+  state.round += 1;
+  state.shieldsUsed = { you:false, ai:false };
+  log(`🔁 New round. Shields refreshed.`);
+  renderAll();
+}
+
+function checkWin() {
+  const youCore = getModule(state.you,"core");
+  const aiCore  = getModule(state.ai,"core");
+  if (!aiCore.alive) { log("🏆 You destroyed the AI Core. You win!"); lockControls(); return true; }
+  if (!youCore.alive){ log("💥 Your Core was destroyed. AI wins."); lockControls(); return true; }
   return false;
 }
 
-function outcome(){
-  const pDead = state.p.reactor <= 0 || state.p.crew <= 0;
-  const eDead = state.e.reactor <= 0 || state.e.crew <= 0;
-  if(pDead && eDead) return 'draw';
-  if(pDead) return 'ai';
-  if(eDead) return 'player';
-  return null;
+function lockControls() {
+  $("#endTurnBtn").disabled = true;
 }
 
-// Validate player selections vs 3 energy & 3 crew
-function validateSelection(sel){
-  let energy = 3, crew = 3;
-  const needs = {
-    shield: sel.shield ? 1 : 0,
-    engine: sel.engine ? 1 : 0,
-    laser: sel.laser ? 1 : 0,
-    cannon: sel.cannon ? 2 : 0,
-    missile: sel.missile ? 2 : 0,
-  };
-  const crewUse = (sel.shield?1:0) + (sel.engine?1:0) + (sel.laser?1:0) + (sel.cannon?1:0) + (sel.missile?1:0);
-
-  if(crewUse > crew) return { ok:false, msg:'You assigned more than 3 crew.' };
-
-  // energy budget
-  const totalEnergy = needs.shield + needs.engine + needs.laser + needs.cannon + needs.missile;
-  if(totalEnergy > energy) return { ok:false, msg:'You assigned more than 3 energy.' };
-
-  // ammo check
-  if(sel.missile && state.p.missiles <= 0) return { ok:false, msg:'No missile ammo remaining.' };
-
-  // range checks (warn, but allow — wasted if out of range)
-  const d = state.distance;
-  if(sel.laser && !(d>=1 && d<=3)) return { ok:true, warn:'Laser out of range (1–3). It will waste energy/crew.' };
-  if(sel.cannon && !(d>=1 && d<=3)) return { ok:true, warn:'Cannon out of range (1–3). It will waste energy/crew.' };
-  if(sel.missile && !(d>=2 && d<=6)) return { ok:true, warn:'Missile out of range (2–6). It will waste energy/crew.' };
-
-  return { ok:true };
-}
-
-// Simple AI selection
-function aiChoose(){
-  let energy=3, crew=3;
-  const d = state.distance;
-  const late = state.round >= 16;
-  const canShield = state.round <= 15;
-
-  const sel = { shield:false, engine:false, engineDir:'closer', laser:false, cannon:false, missile:false };
-
-  // 1) Shield if allowed and we have spare resources (randomized a bit)
-  if(canShield && energy>=1 && crew>=1 && Math.random() < 0.8){
-    sel.shield=true; energy--; crew--;
+/* ==============================
+   Damage / Modifiers
+============================== */
+function drawModifier() {
+  // weighted random
+  const r = Math.random();
+  let acc=0;
+  for (const m of CONFIG.modifiers) {
+    acc += m.weight;
+    if (r <= acc) return m;
   }
+  return CONFIG.modifiers[CONFIG.modifiers.length-1];
+}
 
-  // 2) Movement: if out of range for all, close; else sometimes kite if player is low reactor/crew (very light logic)
-  const inLaser = d>=1 && d<=3;
-  const inMiss = d>=2 && d<=6;
-  const anyInRange = inLaser || inMiss;
-  if(energy>=1 && crew>=1){
-    if(!anyInRange){
-      sel.engine=true; sel.engineDir='closer'; energy--; crew--;
-    } else if(Math.random()<0.25){
-      sel.engine=true; sel.engineDir=(Math.random()<0.5?'farther':'closer'); energy--; crew--;
+function computeDamage(base, mod, defenderShieldUsed, defenderHasShield) {
+  let final = base;
+  if (mod.effect === "plus1") final += 1;
+  if (mod.effect === "crit")  final = base * 2;
+  if (mod.effect === "miss")  final = 0;
+  if (mod.effect === "null")  final = base; // no change
+
+  let applied = final;
+  let shieldConsumed = false;
+
+  if (final > 0 && defenderHasShield && !defenderShieldUsed) {
+    const block = CONFIG.modules.shield.block;
+    applied = Math.max(0, final - block);
+    shieldConsumed = true;
+  }
+  return { final, applied, shieldConsumed };
+}
+
+function applyDamage(module, amount) {
+  if (amount <= 0 || !module.alive) return;
+  module.hp = Math.max(0, module.hp - amount);
+  if (module.hp === 0) module.alive = false;
+}
+
+/* ==============================
+   AI Targeting
+============================== */
+function chooseAiTarget() {
+  const priorities = CONFIG.aiPriority;
+  for (const pType of priorities) {
+    const cands = state.you.filter(m => m.type === pType && alive(m));
+    if (cands.length) {
+      // within type, prefer lowest HP to finish kills
+      cands.sort((a,b)=>a.hp-b.hp);
+      return cands[0];
     }
   }
-
-  // 3) Weapons priority: missiles (if ammo & in range) → cannon → laser
-  if(state.e.missiles>0 && energy>=2 && crew>=1 && d>=2 && d<=6){
-    sel.missile=true; energy-=2; crew--;
-  }
-  if(energy>=2 && crew>=1 && d>=1 && d<=3){
-    sel.cannon=true; energy-=2; crew--;
-  }
-  if(energy>=1 && crew>=1 && d>=1 && d<=3){
-    sel.laser=true; energy-=1; crew--;
-  }
-  return sel;
+  // fallback any alive
+  return state.you.find(alive);
 }
 
-function resolveRound(){
-  // Build player selection from UI
-  const ps = {
-    shield: el('#act-shield').checked,
-    engine: el('#act-engine').checked,
-    engineDir: el('#engine-dir').value,
-    laser: el('#act-laser').checked,
-    cannon: el('#act-cannon').checked,
-    missile: el('#act-missile').checked
-  };
+/* ==============================
+   Helpers & DOM
+============================== */
+function alive(m){ return m && m.alive; }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function $(q){ return document.querySelector(q); }
+function el(tag, cls="", text=""){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
+function pill(text){ const s=el("span","pill"); s.textContent=text; return s; }
 
-  // Shield auto-off after R15
-  if(state.round >= 16) ps.shield = false;
-
-  const v = validateSelection(ps);
-  if(!v.ok){ alert(v.msg); return; }
-  if(v.warn) write(`⚠️ ${v.warn}`);
-
-  // AI selection
-  const es = aiChoose();
-  if(state.round >= 16) es.shield = false;
-
-  // MOVEMENT (simultaneous)
-  let delta = 0;
-  if(ps.engine){
-    if(ps.engineDir === 'closer') delta -= 2;
-    else if(ps.engineDir === 'farther') delta += 2;
-    else { // auto: if no weapon is in range, close; else 25% random reposition
-      const d = state.distance;
-      const inLaser = d>=1 && d<=3;
-      const inMiss = d>=2 && d<=6;
-      if(!(inLaser || inMiss)) delta -= 2;
-      else if(Math.random()<0.25) delta += (Math.random()<0.5?2:-2);
-    }
-  }
-  if(es.engine) delta += (es.engineDir==='farther'? 2 : -2);
-
-  state.distance = clamp(state.distance + delta, 1, 10);
-  write(`🧭 Movement resolved. Distance is now <b>${state.distance}</b>.`);
-
-  // SHIELDS (active only before round 16)
-  state.p.shieldOn = (state.round <= 15 && ps.shield);
-  state.e.shieldOn = (state.round <= 15 && es.shield);
-
-  // ATTACKS (simultaneous)
-  const late = state.round >= 16;
-  const hitBonus = late ? 1 : 0;
-
-  // Helper: roll to hit
-  const rollHit = (need) => (d6() + hitBonus) >= need;
-
-  // Per-attack shield block (6+)
-  const tryBlock = (defenderShieldOn) => defenderShieldOn && (d6() >= 6);
-
-  const d = state.distance;
-  let logRound = [];
-
-  // MISSILES
-  if(ps.missile && state.p.missiles>0){
-    if(d>=2 && d<=6){
-      const hit = rollHit(3); // 3+ (2+ late)
-      if(hit){
-        const blocked = tryBlock(state.e.shieldOn);
-        if(blocked) logRound.push(`Your 💥 Missile was <span class="bad">blocked</span>!`);
-        else {
-          state.e.reactor -= 2;
-          logRound.push(`Your 💥 Missile hits! <span class="good">-2 Reactor</span> to AI.`);
-        }
-      } else logRound.push(`Your 💥 Missile missed.`);
-      state.p.missiles--;
-    } else logRound.push(`Your 💥 Missile out of range (wasted).`);
-  }
-  if(es.missile && state.e.missiles>0){
-    if(d>=2 && d<=6){
-      const hit = rollHit(3);
-      if(hit){
-        const blocked = tryBlock(state.p.shieldOn);
-        if(blocked) logRound.push(`AI's 💥 Missile was <span class="good">blocked</span>!`);
-        else {
-          state.p.reactor -= 2;
-          logRound.push(`AI 💥 Missile hits! <span class="bad">-2 Reactor</span> to You.`);
-        }
-      } else logRound.push(`AI 💥 Missile missed.`);
-      state.e.missiles--;
-    } else logRound.push(`AI 💥 Missile out of range (wasted).`);
-  }
-
-  // CANNONS (kill 1 crew on hit)
-  if(ps.cannon){
-    if(d>=1 && d<=3){
-      const hit = rollHit(4); // 4+ (3+ late)
-      if(hit){
-        const blocked = tryBlock(state.e.shieldOn);
-        if(blocked) logRound.push(`Your 🟠 Cannon was <span class="bad">blocked</span>!`);
-        else {
-          state.e.crew -= 1;
-          logRound.push(`Your 🟠 Cannon hits! AI loses <span class="good">1 crew</span>.`);
-        }
-      } else logRound.push(`Your 🟠 Cannon missed.`);
-    } else logRound.push(`Your 🟠 Cannon out of range (wasted).`);
-  }
-  if(es.cannon){
-    if(d>=1 && d<=3){
-      const hit = rollHit(4);
-      if(hit){
-        const blocked = tryBlock(state.p.shieldOn);
-        if(blocked) logRound.push(`AI's 🟠 Cannon was <span class="good">blocked</span>!`);
-        else {
-          state.p.crew -= 1;
-          logRound.push(`AI 🟠 Cannon hits! You lose <span class="bad">1 crew</span>.`);
-        }
-      } else logRound.push(`AI 🟠 Cannon missed.`);
-    } else logRound.push(`AI 🟠 Cannon out of range (wasted).`);
-  }
-
-  // LASERS (1 dmg to reactor)
-  if(ps.laser){
-    if(d>=1 && d<=3){
-      const hit = rollHit(4); // 4+ (3+ late)
-      if(hit){
-        const blocked = tryBlock(state.e.shieldOn);
-        if(blocked) logRound.push(`Your 🔴 Laser was <span class="bad">blocked</span>!`);
-        else {
-          state.e.reactor -= 1;
-          logRound.push(`Your 🔴 Laser hits! <span class="good">-1 Reactor</span> to AI.`);
-        }
-      } else logRound.push(`Your 🔴 Laser missed.`);
-    } else logRound.push(`Your 🔴 Laser out of range (wasted).`);
-  }
-  if(es.laser){
-    if(d>=1 && d<=3){
-      const hit = rollHit(4);
-      if(hit){
-        const blocked = tryBlock(state.p.shieldOn);
-        if(blocked) logRound.push(`AI's 🔴 Laser was <span class="good">blocked</span>!`);
-        else {
-          state.p.reactor -= 1;
-          logRound.push(`AI 🔴 Laser hits! <span class="bad">-1 Reactor</span> to You.`);
-        }
-      } else logRound.push(`AI 🔴 Laser missed.`);
-    } else logRound.push(`AI 🔴 Laser out of range (wasted).`);
-  }
-
-  // Clamp stats
-  state.p.reactor = Math.max(0, state.p.reactor);
-  state.e.reactor = Math.max(0, state.e.reactor);
-  state.p.crew = Math.max(0, state.p.crew);
-  state.e.crew = Math.max(0, state.e.crew);
-
-  // Write round summary
-  write(`<b>— Round ${state.round} —</b>`);
-  logRound.forEach(x => write(x));
-  write(`You: Reactor ${state.p.reactor}, Crew ${state.p.crew}, Missiles ${state.p.missiles} &nbsp; | &nbsp; AI: Reactor ${state.e.reactor}, Crew ${state.e.crew}, Missiles ${state.e.missiles}`);
-  write(`<span class="muted">Shields: You ${state.p.shieldOn?'ON':'OFF'} • AI ${state.e.shieldOn?'ON':'OFF'}</span><br>`);
-
-  // Check victory
-  const out = outcome();
-  if(out){
-    if(out==='player') write(`<b class="good">✅ You win!</b>`);
-    else if(out==='ai') write(`<b class="bad">❌ You were defeated.</b>`);
-    else write(`<b>⚖️ Draw — both ships disabled.</b>`);
-  } else {
-    state.round++;
-  }
-
-  // Clear checkboxes for next round
-  ['#act-shield','#act-engine','#act-laser','#act-cannon','#act-missile'].forEach(id=>{ el(id).checked=false; });
-  render();
+function log(msg) {
+  const time = new Date().toLocaleTimeString();
+  $("#log").innerHTML += `[${time}] ${msg}<br/>`;
+  $("#log").scrollTop = $("#log").scrollHeight;
 }
+function clearLog(){ $("#log").textContent = ""; }
 
-// Hook up UI
-el('#btn-resolve').addEventListener('click', resolveRound);
-el('#btn-reset').addEventListener('click', resetGame);
+/* ==============================
+   Wire up UI
+============================== */
+$("#endTurnBtn").addEventListener("click", ()=> {
+  if (state.turn === "you") {
+    endTurnTo("ai");
+    setTimeout(aiTurn, CONFIG.betweenTurnsDelayMs);
+  }
+});
+$("#newRoundBtn").addEventListener("click", newRound);
+$("#resetBtn").addEventListener("click", resetGame);
 
-// Kickoff
+/* boot */
 resetGame();
 </script>
 </body>
