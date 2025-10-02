@@ -113,6 +113,7 @@
       <li><b>Damage = # of your surviving weapons.</b> Card effects: <b>CRIT</b> +2 (primary cell), <b>GLNC</b> −1 (primary), <b>MISS</b> = 0, <b>EMP</b> disables that part.</li>
       <li><b>Ranges & patterns:</b> Cannon = Close; Laser = Mid; Missile = Long <i>+ splash</i> to adjacent 8; Railgun = Long <i>+ line</i> through up to 2 behind.</li>
       <li><b>HP:</b> most parts 3; Shield 2; Armor 4. When a part reaches 0 HP, remove the entire part (all its cells).</li>
+      <li><b>Line of Sight:</b> top = ship front. You may only target the <b>frontmost occupied cell</b> in a column; cells “behind” another part are not targetable.</li>
       <li><b>Stances v2:</b> pick one per volley. Small ships (≤40 cells) excel at Maneuver (Juke auto) and Evade (+3 MISS). Medium (41–60) roll 8+ for Juke and get +2 MISS. Large (≥61) roll 12+ for Juke, Evade is +1 MISS, and Brace is strongest (CRIT→GLNC and GLNC→MISS).</li>
     </ol>
   </div>
@@ -164,15 +165,16 @@
   /* ===== Weapons & ranges ===== */
   const WEAPON_RANGE = { cannon:'Close', laser:'Mid', missile:'Long', railgun:'Long' };
   const WEAPON_TYPES = Object.keys(WEAPON_RANGE);
+
   // --- Stance v2 helpers ---
-    function maskCellCount(p){ return p.cells.reduce((s,c)=> s + (c.allowed?1:0), 0); }
-    function shipTier(p){
+  function maskCellCount(p){ return p.cells.reduce((s,c)=> s + (c.allowed?1:0), 0); }
+  function shipTier(p){
     const n = maskCellCount(p);
     if(n <= 40) return 'small';
     if(n <= 60) return 'medium';
     return 'large';
-    }
-    function d20(){ return (Math.random()*20|0) + 1; }
+  }
+  function d20(){ return (Math.random()*20|0) + 1; }
 
   /* ===== Utils ===== */
   const $ = s=>document.querySelector(s);
@@ -374,7 +376,7 @@
       who.value=String((p.target===i)? ((i+1)%state.playerCount) : p.target);
       who.onchange=e=>{ p.target=+e.target.value; p.aimIndex=null; save(); renderAims(); };
 
-      // quick stance/band taps (FIXED)
+      // quick stance/band taps
       card.querySelectorAll('.tag.click').forEach(t=>{
         t.onclick=()=>{
           if(t.dataset.act==='stance'){
@@ -498,15 +500,13 @@
             const hasCore = Object.values(p.parts).some(pt=>pt.type==='core' && pt.hp>0);
             if(hasCore){ flash(c,'#ef476faa'); return; }
           }
-          // enforce one weapon family: if any weapon present, only same family allowed
+          // enforce one weapon family
           if(WEAPON_TYPES.includes(tool.id)){
             const fam = installedWeaponFamilies(p);
             if(fam.length>0 && fam[0]!==tool.id){ flash(c,'#ef476faa'); return; }
           }
 
           if(placeAt(p, idx)){ clearGhost(); renderGrid(i); save(); }
-        }else{
-          // clicking own grid in play does nothing (aim happens on opponent grid via global listeners)
         }
       });
 
@@ -545,20 +545,41 @@
     return true;
   }
 
-  /* ===== Targeting BEFORE roll ===== */
+  /* ===== Line-of-Sight helpers (Top = Front) ===== */
+  function frontTargetIndex(defender, col){
+    for(let r=0; r<N; r++){
+      const id=r*N+col;
+      const cell=defender.cells[id];
+      if(!cell || !cell.allowed) continue;
+      if(cell.partId!=null) return id; // first occupied hull cell from the front
+    }
+    return null;
+  }
+  function legalTargetSet(defender){
+    const set = new Set();
+    for(let c=0;c<N;c++){
+      const idx = frontTargetIndex(defender, c);
+      if(idx!=null) set.add(idx);
+    }
+    return set;
+  }
+
+  /* ===== Targeting BEFORE roll (with LoS) ===== */
   function attachAllAimListeners(){
-    // add click listeners to each target grid so the ATTACKER sets aim on that grid
     state.players.forEach((attacker, ai)=>{
       if(attacker.mode!=='play') return;
       const tgt = (state.players[attacker.target] && attacker.target!==ai)? attacker.target : ((ai+1)%state.playerCount);
       const gEl = document.getElementById('grid'+tgt);
       if(!gEl) return;
 
-      // highlight targetable cells for visibility
-      Array.from(gEl.children).forEach((cell,cellIdx)=>{
-        const defP = state.players[tgt];
+      const defP = state.players[tgt];
+      const legal = legalTargetSet(defP);
+
+      // highlight only legal targets
+      Array.from(gEl.children).forEach((cellEl,cellIdx)=>{
         const model = defP && defP.cells ? defP.cells[cellIdx] : null;
-        if(model && model.allowed) cell.classList.add('targetable');
+        if(model && legal.has(cellIdx)) cellEl.classList.add('targetable');
+        else cellEl.classList.remove('targetable');
       });
 
       // Remove prior to avoid stacking
@@ -571,12 +592,23 @@
         const cellsArr = Array.from(gEl.children);
         const idx = cellsArr.indexOf(cell);
         if(idx<0) return;
-        attacker.aimIndex = idx;
+
+        // snap to frontmost legal target in this column
+        const col = idx % N;
+        const snapped = frontTargetIndex(defP, col);
+        if(snapped==null){
+          // no legal target in this column
+          const resEl = document.getElementById('res'+ai);
+          if(resEl) resEl.textContent = 'No legal target in this column';
+          return;
+        }
+
+        attacker.aimIndex = snapped;
         save();
         renderAims();
-        // lightly update the status line without a full re-render
+
         const resEl = document.getElementById('res'+ai);
-        if(resEl) resEl.textContent = 'Aimed ' + (idx+1); // re-render to show "Aimed @" chip
+        if(resEl) resEl.textContent = 'Aimed ' + (snapped+1);
       };
 
       gEl.addEventListener('click', handler);
@@ -586,87 +618,84 @@
 
   /* ===== Draw / stance / band ===== */
   function drawFor(p){
-  const notes=[];
-  if(p.deck.length===0 && p.discards.length>0){ p.deck=p.discards.splice(0); shuffle(p.deck); }
-  if(p.deck.length===0) return {final:'—',notes:['Deck empty'],color:'#8b97a5'};
+    const notes=[];
+    if(p.deck.length===0 && p.discards.length>0){ p.deck=p.discards.splice(0); shuffle(p.deck); }
+    if(p.deck.length===0) return {final:'—',notes:['Deck empty'],color:'#8b97a5'};
 
-  // --- Stance v2 scaling by ship size ---
-  const tier = shipTier(p); // 'small' | 'medium' | 'large'
+    const tier = shipTier(p); // 'small' | 'medium' | 'large'
 
-  // Maneuver: Juke band shift with tiered success
-  if(p.stance==='JUKEUP' || p.stance==='JUKEDN'){
-    let need = 0, ok = false, roll = 20;
-    if(tier==='small'){ ok = true; need = 0; }
-    else if(tier==='medium'){ need = 8; roll = d20(); ok = (roll >= need); }
-    else { need = 12; roll = d20(); ok = (roll >= need); }
-    if(ok){
-      shiftBand(p, p.stance==='JUKEUP'? +1 : -1);
-      notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✓ → ${p.band}${tier!=='small'?` (d20 ${roll}≥${need})`:''}`);
-    }else{
-      notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✗ (d20 ${roll}<${need})`);
+    // Maneuver: Juke band shift with tiered success
+    if(p.stance==='JUKEUP' || p.stance==='JUKEDN'){
+      let need = 0, ok = false, roll = 20;
+      if(tier==='small'){ ok = true; need = 0; }
+      else if(tier==='medium'){ need = 8; roll = d20(); ok = (roll >= need); }
+      else { need = 12; roll = d20(); ok = (roll >= need); }
+      if(ok){
+        shiftBand(p, p.stance==='JUKEUP'? +1 : -1);
+        notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✓ → ${p.band}${tier!=='small'?` (d20 ${roll}≥${need})`:''}`);
+      }else{
+        notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✗ (d20 ${roll}<${need})`);
+      }
     }
-  }
 
-  // Build draw pool (Defense: Evade adds MISS by tier)
-  const pool=p.deck.slice();
-  if(p.stance==='EVADE'){
-    const add = (tier==='small')?3 : (tier==='medium')?2 : 1;
-    for(let k=0;k<add;k++) pool.push('MISS');
-    notes.push(`Evade: +${add} MISS this draw`);
-  }
-
-  // Draw
-  const first=pool[(Math.random()*pool.length)|0]; let result=first;
-  let i=p.deck.lastIndexOf(first); if(i>=0){ p.hand.push(p.deck.splice(i,1)[0]); }
-
-  // Disrupt: Jam (force redraw on HIT)
-  if(p.stance==='JAM' && result==='HIT'){
-    notes.push('Jam: Hit → redraw');
-    const pool2=p.deck.slice(); if(p.stance==='EVADE'){ const add = (tier==='small')?3:(tier==='medium')?2:1; for(let k=0;k<add;k++) pool2.push('MISS'); }
-    if(pool2.length){
-      const second=pool2[(Math.random()*pool2.length)|0];
-      let j=p.deck.lastIndexOf(second); if(j>=0){ p.hand.push(p.deck.splice(j,1)[0]); }
-      notes.push(`Second: ${second}`); result=second;
+    // Build draw pool (Evade adds MISS by tier)
+    const pool=p.deck.slice();
+    if(p.stance==='EVADE'){
+      const add = (tier==='small')?3 : (tier==='medium')?2 : 1;
+      for(let k=0;k<add;k++) pool.push('MISS');
+      notes.push(`Evade: +${add} MISS this draw`);
     }
-  }
 
-  // Disrupt: Countermeasures (on CRIT)
-  if(p.stance==='COUNTER' && first==='CRIT'){
-    let removed=false, r=p.deck.lastIndexOf('CRIT');
-    if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('CRIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
-    if(!removed){ const c=byId(p,'CRIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
-    notes.push(removed? 'Counter: -1 CRIT (perm)':'Counter: no CRIT to remove');
-  }
+    // Draw
+    const first=pool[(Math.random()*pool.length)|0]; let result=first;
+    let i=p.deck.lastIndexOf(first); if(i>=0){ p.hand.push(p.deck.splice(i,1)[0]); }
 
-  // Disrupt: Sabotage
-  if(p.stance==='SABOT'){
-    const where=(Math.random()*(p.deck.length+1))|0;
-    p.deck.splice(where,0,'MISS'); ensureKey(p,'MISS'); byId(p,'MISS').count=(+byId(p,'MISS').count||0)+1;
-    notes.push('Sabotage: +1 MISS (perm)');
-  }
-
-  // Disrupt: Scramble
-  if(p.stance==='SCRUB'){
-    let removed=false, r=p.deck.lastIndexOf('HIT');
-    if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('HIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
-    if(!removed){ const c=byId(p,'HIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
-    notes.push(removed? 'Scramble: -1 HIT (perm)':'Scramble: no HIT to remove');
-  }
-
-  // Defense: Brace with tiered downgrade
-  if(p.stance==='BRACE'){
-    if(result==='CRIT'){
-      if(tier==='small'){ result='HIT'; notes.push('Brace: CRIT → HIT'); }
-      else if(tier==='medium'){ result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
-      else { result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
-    } else if(result==='GLNC' && tier==='large'){
-      result='MISS'; notes.push('Brace: GLNC → MISS (large)');
+    // Disrupt: Jam (force redraw on HIT)
+    if(p.stance==='JAM' && result==='HIT'){
+      notes.push('Jam: Hit → redraw');
+      const pool2=p.deck.slice(); if(p.stance==='EVADE'){ const add = (tier==='small')?3:(tier==='medium')?2:1; for(let k=0;k<add;k++) pool2.push('MISS'); }
+      if(pool2.length){
+        const second=pool2[(Math.random()*pool2.length)|0];
+        let j=p.deck.lastIndexOf(second); if(j>=0){ p.hand.push(p.deck.splice(j,1)[0]); }
+        notes.push(`Second: ${second}`); result=second;
+      }
     }
-  }
 
-  const def = byId(p,result) || {name:result, color:'#6ea8fe'};
-  return {final:result,notes,color:def.color};
-}
+    // Disrupt: Countermeasures (on CRIT)
+    if(p.stance==='COUNTER' && first==='CRIT'){
+      let removed=false, r=p.deck.lastIndexOf('CRIT');
+      if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('CRIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
+      if(!removed){ const c=byId(p,'CRIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
+      notes.push(removed? 'Counter: -1 CRIT (perm)':'Counter: no CRIT to remove');
+    }
+
+    if(p.stance==='SABOT'){
+      const where=(Math.random()*(p.deck.length+1))|0;
+      p.deck.splice(where,0,'MISS'); ensureKey(p,'MISS'); byId(p,'MISS').count=(+byId(p,'MISS').count||0)+1;
+      notes.push('Sabotage: +1 MISS (perm)');
+    }
+
+    if(p.stance==='SCRUB'){
+      let removed=false, r=p.deck.lastIndexOf('HIT');
+      if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('HIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
+      if(!removed){ const c=byId(p,'HIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
+      notes.push(removed? 'Scramble: -1 HIT (perm)':'Scramble: no HIT to remove');
+    }
+
+    // Defense: Brace with tiered downgrade
+    if(p.stance==='BRACE'){
+      if(result==='CRIT'){
+        if(tier==='small'){ result='HIT'; notes.push('Brace: CRIT → HIT'); }
+        else if(tier==='medium'){ result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
+        else { result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
+      } else if(result==='GLNC' && tier==='large'){
+        result='MISS'; notes.push('Brace: GLNC → MISS (large)');
+      }
+    }
+
+    const def = byId(p,result) || {name:result, color:'#6ea8fe'};
+    return {final:result,notes,color:def.color};
+  }
   function shiftBand(p,delta){ const i=BANDS.indexOf(p.band); p.band=BANDS[Math.min(BANDS.length-1,Math.max(0,i+delta))]; }
 
   /* ===== Patterns & damage application ===== */
@@ -779,22 +808,23 @@
   function pushLog(html){ const stamp=new Date().toLocaleTimeString(); tableLog.innerHTML=`<div class="mini" style="opacity:.6">${stamp}</div><div>${html}</div><hr style="border-color:#223042;opacity:.4"/>`+tableLog.innerHTML; }
   function flash(cell,color){ const prev=cell.style.boxShadow; cell.style.boxShadow=`0 0 0 2px ${color} inset`; setTimeout(()=> cell.style.boxShadow=prev,350); }
   function renderAims(){
-  // clear previous aimed marks on all grids
-  for(let gi=0; gi<state.playerCount; gi++){
-    const gEl = document.getElementById('grid'+gi);
-    if(!gEl) continue;
-    Array.from(gEl.children).forEach(c=> c.classList.remove('aimed'));
+    // clear previous aimed marks on all grids
+    for(let gi=0; gi<state.playerCount; gi++){
+      const gEl = document.getElementById('grid'+gi);
+      if(!gEl) continue;
+      Array.from(gEl.children).forEach(c=> c.classList.remove('aimed'));
+    }
+    // paint each player's aim onto their target's grid (still valid)
+    state.players.forEach((p, ai)=>{
+      if(p.aimIndex==null || p.mode!=='play') return;
+      const tgt = (state.players[p.target] && p.target!==ai)? p.target : ((ai+1)%state.playerCount);
+      const gEl = document.getElementById('grid'+tgt);
+      if(!gEl) return;
+      const cell = gEl.children[p.aimIndex];
+      if(cell) cell.classList.add('aimed');
+    });
   }
-  // paint each player's aim onto their target's grid
-  state.players.forEach((p, ai)=>{
-    if(p.aimIndex==null || p.mode!=='play') return;
-    const tgt = (state.players[p.target] && p.target!==ai)? p.target : ((ai+1)%state.playerCount);
-    const gEl = document.getElementById('grid'+tgt);
-    if(!gEl) return;
-    const cell = gEl.children[p.aimIndex];
-    if(cell) cell.classList.add('aimed');
-  });
-}
+
   /* ===== Volley resolve ===== */
   document.getElementById('resolve').onclick = ()=>{
     // draw for all
@@ -808,7 +838,7 @@
       if(out.notes.length){ cEl.style.display='block'; cEl.textContent=out.notes.join(' • '); } else { cEl.style.display='none'; }
     });
 
-    // apply all
+    // apply all (with LoS snap)
     state.players.forEach((p,i)=>{
       const tgt = (state.players[p.target] && p.target!==i)? p.target : ((i+1)%state.playerCount);
       const defender = state.players[tgt];
@@ -816,9 +846,18 @@
 
       if(aim==null){ pushLog(`${p.name}: no target selected`); return; }
 
-      const out = applyDamage(p, defender, aim, p.pending);
+      // snap to current frontmost occupied cell in the aimed column
+      const col = aim % N;
+      const snapped = frontTargetIndex(defender, col);
+      if(snapped==null){
+        pushLog(`${p.name} → ${defender.name}: no legal target in that column`);
+        p.pending = null;
+        return;
+      }
+
+      const out = applyDamage(p, defender, snapped, p.pending);
       if(out.ok){
-        pushLog(`${p.name} → ${defender.name}: <b>${p.pending}</b> at ${aim+1}`);
+        pushLog(`${p.name} → ${defender.name}: <b>${p.pending}</b> at ${snapped+1}`);
       }else{
         pushLog(`${p.name} → ${defender.name}: ${out.msg}`);
       }
