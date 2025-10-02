@@ -1,22 +1,854 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Roll Matrix with Gear, Armor, and Boon</title>
-  <style>
-    body { font-family: sans-serif; background: #111; color: #eee; padding: 2em; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 2em; }
-    th, td { border: 1px solid #333; padding: 0.4em; text-align: center; }
-    th { background: #222; color: #6cf; }
-    h2 { color: #6cf; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Cosmoteer — Ship Mask Playtest</title>
+<style>
+  :root{--bg:#0b0f15;--panel:#121826;--text:#eaf0f8;--muted:#9aa7b2;--border:#223042;--ok:#06d6a0;--warn:#ffd166;--danger:#ff6b6b;--accent:#6ea8fe}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:#0b0f15;color:var(--text)}
+  header{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;padding:10px 12px;background:rgba(12,16,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  header h1{margin:0;font-size:16px;font-weight:800}
+  .sp{flex:1}
+  .ghostbtn{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:8px 12px;cursor:pointer}
+  .wrap{max-width:1150px;margin:10px auto 120px;padding:0 12px 160px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input,select,button{border-radius:12px;border:1px solid var(--border);background:#0f1522;color:#eaf0f8;padding:10px 12px}
+  button.primary{background:var(--ok);color:#112;font-weight:800;border-color:#129e7e}
+  .mini{font-size:12px;color:var(--muted)}
+
+  .volley{display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:900px){.volley{grid-template-columns:1fr 1fr}}
+
+  .player{background:linear-gradient(180deg,#0f1522,#0a1019);border:1px solid var(--border);border-radius:14px;padding:12px;display:grid;gap:10px}
+  .title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .name{font-weight:900}
+  .tags{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:13px;background:#0f1522}
+  .tag.click{cursor:pointer;background:#122036}
+  .result{font-size:18px;font-weight:900;text-align:center}
+  .ctx{font-size:12px;color:#cfe1ff;border:1px dashed var(--border);border-radius:10px;padding:6px 8px;display:none}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .palette{display:flex;gap:8px;flex-wrap:wrap}
+  .tool{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:#0f1522;cursor:pointer}
+  .tool.active{outline:2px solid #ffffff22}
+  .tool .emoji{font-size:18px}
+  .tool .lbl{font-size:13px}
+
+  .grid{--n:12;display:grid;grid-template-columns:repeat(var(--n),minmax(22px,1fr));gap:2px;border:1px solid var(--border);padding:6px;border-radius:10px;background:#0f141c}
+  .cell{aspect-ratio:1;border:1px solid #1d2a3a;border-radius:6px;background:#0e1520;box-shadow:0 0 0 1px #000 inset;position:relative;display:flex;align-items:center;justify-content:center}
+  .off{background:#0a0f15; opacity:.35}
+  .on{background:#101b2a}
+  .module{background:#15263d}
+  .damaged{background:#ffd16633}
+  .emp{outline:2px dashed #9df0aeaa}
+  .targetable{outline:2px solid #6ea8fe88}
+  .aimed{outline:3px solid #06d6a0aa}
+  .ghostShape{background:#6ea8fe1a; outline:2px dashed #6ea8fe55}
+  .invalidGhost{background:#ef476f10; outline-color:#ef476f77}
+  .badge{position:absolute;inset:auto 2px 2px auto;font-size:13px}
+  .core {box-shadow:0 0 0 2px #a66bff inset}
+  .shield {box-shadow:0 0 0 2px #9df0ae66 inset}
+  .armor {box-shadow:0 0 0 2px #8899aa66 inset}
+  .engine {box-shadow:0 0 0 2px #ff9b6b66 inset}
+  .cannon {box-shadow:0 0 0 2px #f08cff66 inset}
+  .railgun {box-shadow:0 0 0 2px #6ea8fe66 inset}
+  .missile {box-shadow:0 0 0 2px #ffbd7a66 inset}
+  .laser {box-shadow:0 0 0 2px #e86eff66 inset}
+  .plate {box-shadow:0 0 0 2px #b0c4d866 inset}
+
+  .fab{position:fixed;inset:auto 0 0 0;background:rgba(12,16,24,.92);border-top:1px solid var(--border);padding:12px;display:flex;gap:10px;z-index:30}
+  .fab button{flex:1;padding:15px 18px;font-size:16px;font-weight:800;border-radius:14px}
+  .log{max-height:220px;overflow:auto;background:#0f141c;border:1px solid var(--border);border-radius:10px;padding:8px;font-size:13px}
+</style>
 </head>
 <body>
-  <h2>Simulated Roll Matrix</h2>
-  <div id="matrix"></div>
+<header>
+  <h1>Cosmoteer — Ship Mask Playtest</h1>
+  <div class="sp"></div>
+  <button id="toInfo" class="ghostbtn">Info</button>
+  <button id="toSetup" class="ghostbtn" style="display:none">Setup</button>
+</header>
 
-  <script src="ai-matrix-gear-armor-boon.js"></script>
+<!-- SETUP -->
+<div class="wrap" id="screen-setup">
+  <div class="card">
+    <h2 style="margin:0 0 8px 0">Players</h2>
+    <div class="row">
+      <label>Count:</label>
+      <select id="playerCount"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+    </div>
+    <div id="setupGrid" class="row" style="gap:12px;flex-direction:column"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="start" class="primary">Start</button>
+    </div>
+    <div class="mini">Choose names & ship masks now—components are placed on the battle screen.</div>
+  </div>
+</div>
+
+<!-- BATTLE -->
+<div class="wrap" id="screen-battle" style="display:none">
+  <div class="card">
+    <div id="volley" class="volley"></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <h3 style="margin:6px 0">Table Log</h3>
+    <div id="tableLog" class="log"></div>
+  </div>
+</div>
+
+<!-- INFO -->
+<div class="wrap" id="screen-info" style="display:none">
+  <div class="card">
+    <h2>Build → Play</h2>
+    <ol class="mini" style="line-height:1.6">
+      <li>Pick a <b>ship mask</b>. <span style="opacity:.9">Blue</span> cells are buildable hull; <span style="opacity:.7">gray</span> cells are blocked.</li>
+      <li><b>One weapon family per ship</b> (railgun / cannon / missile / laser). You may install multiple copies of that family.</li>
+      <li><b>Build:</b> select a component to preview its <b>ghost footprint</b>; tap again to place (use <i>Rotate</i> to turn).</li>
+      <li><b>Play:</b> tap the <b>opponent’s grid</b> to set your <b>target</b> cell first, then press <b>Resolve Volley</b>.</li>
+      <li><b>Damage = # of your surviving weapons.</b> Card effects: <b>CRIT</b> +2 (primary cell), <b>GLNC</b> −1 (primary), <b>MISS</b> = 0, <b>EMP</b> disables that part.</li>
+      <li><b>Ranges & patterns:</b> Cannon = Close; Laser = Mid; Missile = Long <i>+ splash</i> to adjacent 8; Railgun = Long <i>+ line</i> through up to 2 behind.</li>
+      <li><b>HP:</b> most parts 3; Shield 2; Armor 4. When a part reaches 0 HP, remove the entire part (all its cells).</li>
+      <li><b>Stances v2:</b> pick one per volley. Small ships (≤40 cells) excel at Maneuver (Juke auto) and Evade (+3 MISS). Medium (41–60) roll 8+ for Juke and get +2 MISS. Large (≥61) roll 12+ for Juke, Evade is +1 MISS, and Brace is strongest (CRIT→GLNC and GLNC→MISS).</li>
+    </ol>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="fab">
+  <button id="resolve" class="primary">Resolve Volley</button>
+  <button id="clearTargets" class="ghostbtn">Clear Targets</button>
+</div>
+
+<script>
+(function(){
+  const STORE='cosmo_shipmask_playtest_v5';
+
+  /* ===== Cards / presets / stances ===== */
+  const CARDS = [
+    {id:'HIT',  name:'Hit',            effect:'Normal hit',           color:'#6ea8fe', count:12},
+    {id:'MISS', name:'Miss',           effect:'Attack fails',         color:'#8b97a5', count:6},
+    {id:'CRIT', name:'Critical Hit',   effect:'Massive hit',          color:'#ef476f', count:4},
+    {id:'GLNC', name:'Glancing Hit',   effect:'Light hit',            color:'#ffd166', count:3},
+    {id:'EMP',  name:'EMP',            effect:'Disabled 1 volley',    color:'#9df0ae', count:3},
+  ];
+  const PRESETS = {
+    Balanced:{HIT:12,MISS:6,CRIT:4,GLNC:3,EMP:3},
+    Interceptor:{HIT:11,MISS:7,CRIT:3,GLNC:3,EMP:3},
+    Gunship:{HIT:12,MISS:5,CRIT:5,GLNC:2,EMP:2},
+    Carrier:{HIT:10,MISS:6,CRIT:3,GLNC:3,EMP:4},
+    Support:{HIT:10,MISS:6,CRIT:3,GLNC:3,EMP:5}
+  };
+  const STANCES = [
+    {id:'NONE',     label:'None'},
+    {id:'EVADE',    label:'Evade'},
+    {id:'BRACE',    label:'Brace'},
+    {id:'JAM',      label:'Jam'},
+    {id:'COUNTER',  label:'Counter'},
+    {id:'SABOT',    label:'Sabotage'},
+    {id:'JUKEUP',   label:'Juke Far'},
+    {id:'JUKEDN',   label:'Juke Close'},
+    {id:'SCRUB',    label:'Scramble'}
+  ];
+  const BANDS = ['Close','Mid','Long'];
+  const PRESETN = Object.keys(PRESETS);
+
+  /* ===== Base HP ===== */
+  const DEFAULT_HP = 3;
+  const BASE_HP = { shield: 2, armor: 4 };
+
+  /* ===== Weapons & ranges ===== */
+  const WEAPON_RANGE = { cannon:'Close', laser:'Mid', missile:'Long', railgun:'Long' };
+  const WEAPON_TYPES = Object.keys(WEAPON_RANGE);
+  // --- Stance v2 helpers ---
+    function maskCellCount(p){ return p.cells.reduce((s,c)=> s + (c.allowed?1:0), 0); }
+    function shipTier(p){
+    const n = maskCellCount(p);
+    if(n <= 40) return 'small';
+    if(n <= 60) return 'medium';
+    return 'large';
+    }
+    function d20(){ return (Math.random()*20|0) + 1; }
+
+  /* ===== Utils ===== */
+  const $ = s=>document.querySelector(s);
+  const el=(t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
+  function byId(p,key){ return p.cards.find(c=>c.id===key); }
+  function ensureKey(p,key){ if(!byId(p,key)) p.cards.push({id:key,name:key,effect:'(added)',color:'#8b97a5',count:0}); }
+  function buildDeck(p){ p.deck=[]; p.discards=[]; p.hand=[]; p.cards.forEach(c=>{ for(let i=0;i<(+c.count||0);i++) p.deck.push(c.id); }); shuffle(p.deck); }
+  const rotateShape = sh => sh[0].map((_,i)=> sh.map(r=>r[i]).reverse());
+  const inBounds=(r,c,N=12)=> r>=0&&c>=0&&r<N&&c<N;
+
+  /* ===== Ship masks (12×12) ===== */
+  const N=12;
+  function emptyMask(){return Array(N*N).fill(0);}
+  const MASKS = {
+    Arrowhead: (()=>{
+      const m=emptyMask();
+      const rows = [[5,6],[4,7],[3,8],[2,9],[3,8],[4,7],[5,6]];
+      let r=1; rows.forEach(([a,b])=>{ for(let c=a;c<=b;c++) m[r*N+c]=1; r++; });
+      return m;
+    })(),
+    Wedge: (()=>{
+      const m=emptyMask();
+      for(let r=2;r<10;r++){
+        for(let c=3;c<9;c++){
+          const max = (r<6? 3+r-2 : 9-(r-6));
+          if(c>=3 && c<=max) m[r*N+c]=1;
+        }
+      }
+      return m;
+    })(),
+    Brick: (()=>{
+      const m=emptyMask();
+      for(let r=3;r<9;r++) for(let c=3;c<9;c++) m[r*N+c]=1;
+      return m;
+    })(),
+    Crescent: (()=>{
+      const m=emptyMask();
+      for(let r=2;r<10;r++) for(let c=2;c<10;c++){
+        const dx=r-6, dy=c-6; const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<5.2 && d>2.2 && !(r>6 && c>6)) m[r*N+c]=1;
+      }
+      return m;
+    })()
+  };
+  const MASK_NAMES=Object.keys(MASKS);
+
+  /* ===== Components (Core 2×2, no Reactor) ===== */
+  const TOOLS = [
+    {id:'pointer', label:'Pointer', emoji:'🖐️', shape:[[1]], style:''},
+    {id:'eraser',  label:'Erase',   emoji:'🧽', shape:[[1]], style:''},
+    {id:'core',    label:'Core',    emoji:'💠', shape:[[1,1],[1,1]], style:'core'},  // 2×2
+    {id:'shield',  label:'Shield',  emoji:'🛡️', shape:[[1]], style:'shield'},
+    {id:'armor',   label:'Armor',   emoji:'🪨', shape:[[1]], style:'armor'},
+    {id:'engine',  label:'Engine',  emoji:'🚀', shape:[[1,1]], style:'engine'},
+    {id:'plate',   label:'Plate',   emoji:'🧱', shape:[[1,1],[1,1]], style:'plate'},
+    /* Weapons — only one family allowed per ship */
+    {id:'railgun', label:'Railgun', emoji:'🎯', shape:[[1,1,1]], style:'railgun'},
+    {id:'cannon',  label:'Cannon',  emoji:'🛰️', shape:[[1,1,1]], style:'cannon'},
+    {id:'missile', label:'Missile', emoji:'🎇', shape:[[1,1]],   style:'missile'},
+    {id:'laser',   label:'Laser',   emoji:'🔫', shape:[[1]],     style:'laser'}
+  ];
+
+  function typeEmoji(t){
+    if(t==='core') return '💠';
+    if(t==='shield') return '🛡️';
+    if(t==='armor') return '🪨';
+    if(t==='engine') return '🚀';
+    if(t==='plate') return '🧱';
+    if(t==='railgun') return '🎯';
+    if(t==='cannon') return '🛰️';
+    if(t==='missile') return '🎇';
+    if(t==='laser') return '🔫';
+    return '';
+  }
+
+  /* ===== Player model ===== */
+  function makePlayer(i){
+    const name=['Alpha','Bravo','Charlie','Delta'][i]||`P${i+1}`;
+    const presetName=PRESETN[i%PRESETN.length];
+    const maskName  =MASK_NAMES[i%MASK_NAMES.length];
+
+    const cards=JSON.parse(JSON.stringify(CARDS));
+    const deck=[],discards=[],hand=[],log=[];
+    const stance='NONE', band='Mid';
+    const target=(i+1)%2;
+
+    const map=PRESETS[presetName]; cards.forEach(c=> c.count=map[c.id]??0);
+    for(const c of cards){ for(let k=0;k<c.count;k++) deck.push(c.id); }
+    shuffle(deck);
+
+    const cells = Array.from({length:N*N},()=>({allowed:false, type:null, emp:false, partId:null}));
+    const mask  = MASKS[maskName]; mask.forEach((v,idx)=> cells[idx].allowed=!!v);
+
+    return {
+      name, presetName, cards, deck, discards, hand, log,
+      stance, band, target, maskName, cells,
+      parts: {}, nextPartId: 1,
+      mode: 'build', tool: 'pointer', rot: 0,
+      aimIndex: null,  // chosen target cell
+      pending: null
+    };
+  }
+
+  let state = {playerCount:2, players:[makePlayer(0),makePlayer(1)]};
+
+  /* ===== Storage & screens ===== */
+  function load(){ const raw=localStorage.getItem(STORE); if(!raw){save(); return;} try{ const d=JSON.parse(raw); if(d.playerCount) state.playerCount=d.playerCount; if(d.players) state.players=d.players; }catch(e){} }
+  function save(){ localStorage.setItem(STORE, JSON.stringify(state)); }
+
+  const screenSetup=$('#screen-setup'), screenBattle=$('#screen-battle'), screenInfo=$('#screen-info');
+  const toSetup=$('#toSetup'), toInfo=$('#toInfo');
+  function showSetup(){ screenSetup.style.display='block'; screenBattle.style.display='none'; screenInfo.style.display='none'; toSetup.style.display='none'; }
+  function showBattle(){ screenSetup.style.display='none'; screenBattle.style.display='block'; screenInfo.style.display='none'; toSetup.style.display='inline-block'; }
+  function showInfo(){ screenSetup.style.display='none'; screenBattle.style.display='block'; screenInfo.style.display='block'; toSetup.style.display='inline-block'; }
+  toInfo.onclick=showInfo; toSetup.onclick=showSetup;
+
+  /* ===== Setup ===== */
+  const playerCountSel=$('#playerCount');
+  const setupGrid=$('#setupGrid');
+  playerCountSel.onchange=()=>{ state.playerCount=+playerCountSel.value; clampPlayers(); renderSetup(); save(); };
+  function clampPlayers(){ while(state.players.length<state.playerCount) state.players.push(makePlayer(state.players.length)); while(state.players.length>state.playerCount) state.players.pop(); }
+  function renderSetup(){
+    playerCountSel.value=String(state.playerCount);
+    setupGrid.innerHTML='';
+    state.players.forEach((p,i)=>{
+      const row=el('div','row');
+      row.innerHTML=`
+        <input id="nm${i}" value="${p.name}" placeholder="Name"/>
+        <label>Preset:</label><select id="ps${i}"></select>
+        <label>Ship:</label><select id="mk${i}"></select>
+      `;
+      setupGrid.appendChild(row);
+      const ps=row.querySelector('#ps'+i), mk=row.querySelector('#mk'+i);
+      PRESETN.forEach(n=>{ const o=el('option'); o.value=n; o.textContent=n; ps.appendChild(o); });
+      MASK_NAMES.forEach(n=>{ const o=el('option'); o.value=n; o.textContent=n; mk.appendChild(o); });
+      ps.value=p.presetName; mk.value=p.maskName;
+      row.querySelector('#nm'+i).oninput=e=>{ p.name=e.target.value; save(); renderVolley(); };
+      ps.onchange=e=>{ p.presetName=e.target.value; const map=PRESETS[p.presetName]; p.cards.forEach(c=> c.count=map[c.id]??0); buildDeck(p); save(); };
+      mk.onchange=e=>{
+        p.maskName=e.target.value;
+        p.cells.forEach(c=>{ c.allowed=false; c.type=null; c.emp=false; c.partId=null; });
+        p.parts = {}; p.nextPartId=1; p.aimIndex=null;
+        const mask=MASKS[p.maskName]; mask.forEach((v,idx)=> p.cells[idx].allowed=!!v);
+        p.mode='build';
+        save(); renderVolley();
+      };
+    });
+  }
+  document.getElementById('start').onclick=()=>{ showBattle(); renderVolley(); save(); };
+
+  /* ===== Battle ===== */
+  const volley=$('#volley'), tableLog=$('#tableLog');
+
+  function renderVolley(){
+    volley.innerHTML='';
+    state.players.forEach((p,i)=>{
+      const card=el('div','player'); card.dataset.idx=i;
+
+      card.innerHTML=`
+        <div class="title">
+          <div class="name">${p.name}</div>
+          <div class="tags">
+            <span class="tag">${p.presetName}</span>
+            <span class="tag click" data-act="stance" data-i="${i}">Stance: ${STANCES.find(s=>s.id===p.stance)?.label||'None'}</span>
+            <span class="tag click" data-act="band" data-i="${i}">Band: ${p.band}</span>
+            <span class="tag">${p.mode==='build'?'Build':'Play'}</span>
+            ${p.aimIndex!=null ? `<span class="tag" style="background:#11273f;border-color:#285;">Aimed @ ${p.aimIndex+1}</span>`:''}
+            ${p.pending ? `<span class="tag" style="background:#11273f;border-color:#285; color:#cfe1ff">Pending: ${p.pending}</span>`:''}
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="row">
+            <button class="ghostbtn rot" data-i="${i}">Rotate</button>
+            <button class="ghostbtn mode" data-i="${i}">${p.mode==='build'?'Lock Build':'Unlock Build'}</button>
+            <label>Target:</label>
+            <select class="who" data-i="${i}"></select>
+          </div>
+          <div class="palette" id="palette${i}">
+            ${TOOLS.map(t=>`
+              <div class="tool ${p.tool===t.id?'active':''}" data-i="${i}" data-tool="${t.id}">
+                <span class="emoji">${t.emoji}</span><span class="lbl">${t.label}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="grid" id="grid${i}" style="--n:${N}" data-owner="${i}"></div>
+        <div class="result" id="res${i}">${p.mode==='play' ? 'Tap enemy grid to target' : 'Build mode'}</div>
+        <div class="ctx" id="ctx${i}"></div>
+      `;
+      volley.appendChild(card);
+
+      // target dropdown
+      const who=card.querySelector('.who');
+      who.innerHTML='';
+      state.players.forEach((pp,j)=>{ if(j===i) return; const o=el('option'); o.value=j; o.textContent=pp.name; who.appendChild(o); });
+      who.value=String((p.target===i)? ((i+1)%state.playerCount) : p.target);
+      who.onchange=e=>{ p.target=+e.target.value; p.aimIndex=null; save(); renderAims(); };
+
+      // quick stance/band taps (FIXED)
+      card.querySelectorAll('.tag.click').forEach(t=>{
+        t.onclick=()=>{
+          if(t.dataset.act==='stance'){
+            const idx=STANCES.findIndex(s=>s.id===p.stance);
+            p.stance=STANCES[(idx+1)%STANCES.length].id;
+          }else{
+            const bi=BANDS.indexOf(p.band);
+            p.band=BANDS[(bi+1)%BANDS.length];
+          }
+          save(); renderVolley();
+        };
+      });
+
+      // rotate & mode
+      card.querySelector('.rot').onclick=()=>{ p.rot=(p.rot+1)%4; save(); renderVolley(); };
+      card.querySelector('.mode').onclick=()=>{ p.mode=p.mode==='build'?'play':'build'; save(); renderVolley(); };
+
+      // palette selection
+      card.querySelectorAll('.tool').forEach(btn=>{
+        btn.onclick=()=>{ p.tool=btn.dataset.tool; save(); renderVolley(); };
+      });
+
+      renderGrid(i);
+    });
+
+    // Attach AIM listeners to each attacker's chosen target grid
+    attachAllAimListeners();
+    renderAims();
+  }
+
+  /* ==== Weapon family helpers ==== */
+  function installedWeaponFamilies(p){
+    const fam=new Set();
+    for(const pid in p.parts){
+      const t=p.parts[pid].type;
+      if(WEAPON_TYPES.includes(t)) fam.add(t);
+    }
+    return Array.from(fam);
+  }
+  function getWeaponFamily(p){
+    const fam = installedWeaponFamilies(p);
+    return fam.length>0 ? fam[0] : null; // only one allowed
+  }
+  function countWeaponsOfType(p, type){
+    let n=0;
+    for(const pid in p.parts){
+      const part=p.parts[pid];
+      if(part.type===type && part.hp>0) n++;
+    }
+    return n;
+  }
+
+  function renderGrid(i){
+    const p=state.players[i], gEl=document.getElementById('grid'+i); gEl.innerHTML='';
+
+    // ghost preview helper
+    const showGhostAt = (idx)=>{
+      clearGhost();
+      if(p.mode!=='build') return;
+      const tool=TOOLS.find(t=>t.id===p.tool);
+      if(!tool || tool.id==='pointer' || tool.id==='eraser') return;
+
+      const r0=(idx/N)|0, c0=idx%N;
+      const shape=rotateTimes(tool.shape, p.rot);
+      let valid=true; const ids=[];
+      for(let rr=0; rr<shape.length; rr++){
+        for(let cc=0; cc<shape[0].length; cc++){
+          if(!shape[rr][cc]) continue;
+          const r=r0+rr, c=c0+cc; if(!inBounds(r,c,N)){ valid=false; continue; }
+          const id=r*N+c; ids.push(id);
+          const dest=p.cells[id];
+          if(!dest || !dest.allowed || (dest.type && dest.partId!=null)) valid=false;
+        }
+      }
+      ids.forEach(id=>{
+        const cellEl = gEl.children[id];
+        if(cellEl){
+          cellEl.classList.add('ghostShape');
+          if(!valid) cellEl.classList.add('invalidGhost');
+        }
+      });
+    };
+    const clearGhost = ()=>{
+      Array.from(gEl.children).forEach(c=>{
+        c.classList.remove('ghostShape','invalidGhost');
+      });
+    };
+
+    p.cells.forEach((cell,idx)=>{
+      const c=el('div','cell'); c.classList.add(cell.allowed?'on':'off');
+      if(cell.type) c.classList.add(cell.type, 'module');
+      if(cell.partId!=null){
+        const part=p.parts[cell.partId];
+        if(part && part.hp<part.max) c.classList.add('damaged');
+        if(cell.emp) c.classList.add('emp');
+      }
+      const badge=el('div','badge'); badge.textContent=typeEmoji(cell.type); c.appendChild(badge);
+
+      c.addEventListener('mouseenter', ()=>{ showGhostAt(idx); });
+      c.addEventListener('mouseleave', ()=>{ clearGhost(); });
+
+      c.addEventListener('click', ()=>{
+        if(!cell.allowed) return;
+        if(p.mode==='build'){
+          const tool=TOOLS.find(t=>t.id===p.tool); if(!tool) return;
+
+          if(tool.id==='eraser'){
+            if(cell.partId!=null){
+              const pid=cell.partId;
+              p.cells.forEach(cc=>{ if(cc.partId===pid){ cc.type=null; cc.emp=false; cc.partId=null; } });
+              delete p.parts[pid];
+            }else{
+              cell.type=null; cell.emp=false; cell.partId=null;
+            }
+            renderGrid(i); save(); return;
+          }
+          if(tool.id==='pointer') return;
+
+          // enforce single core
+          if(tool.id==='core'){
+            const hasCore = Object.values(p.parts).some(pt=>pt.type==='core' && pt.hp>0);
+            if(hasCore){ flash(c,'#ef476faa'); return; }
+          }
+          // enforce one weapon family: if any weapon present, only same family allowed
+          if(WEAPON_TYPES.includes(tool.id)){
+            const fam = installedWeaponFamilies(p);
+            if(fam.length>0 && fam[0]!==tool.id){ flash(c,'#ef476faa'); return; }
+          }
+
+          if(placeAt(p, idx)){ clearGhost(); renderGrid(i); save(); }
+        }else{
+          // clicking own grid in play does nothing (aim happens on opponent grid via global listeners)
+        }
+      });
+
+      gEl.appendChild(c);
+    });
+  }
+
+  const rotateTimes=(shape,n)=>{ let s=shape; for(let k=0;k<n;k++) s=rotateShape(s); return s; };
+  function baseHpFor(type){ return BASE_HP[type] || DEFAULT_HP; }
+
+  function placeAt(p, idx){
+    const tool=TOOLS.find(t=>t.id===p.tool); if(!tool) return false;
+
+    const r0=(idx/N)|0, c0=idx%N;
+    const shape = rotateTimes(tool.shape, p.rot);
+    const coords=[];
+    for(let rr=0; rr<shape.length; rr++){
+      for(let cc=0; cc<shape[0].length; cc++){
+        if(!shape[rr][cc]) continue;
+        const r=r0+rr, c=c0+cc; if(!inBounds(r,c,N)) return false;
+        const id=r*N+c; const dest=p.cells[id];
+        if(!dest.allowed || (dest.type && dest.partId!=null)) return false; // collision
+        coords.push(id);
+      }
+    }
+
+    const pid = p.nextPartId++;
+    p.parts[pid] = {type: tool.id, hp: baseHpFor(tool.id), max: baseHpFor(tool.id)};
+
+    coords.forEach(id=>{
+      const dest=p.cells[id];
+      dest.type=tool.id;
+      dest.emp=false;
+      dest.partId=pid;
+    });
+    return true;
+  }
+
+  /* ===== Targeting BEFORE roll ===== */
+  function attachAllAimListeners(){
+    // add click listeners to each target grid so the ATTACKER sets aim on that grid
+    state.players.forEach((attacker, ai)=>{
+      if(attacker.mode!=='play') return;
+      const tgt = (state.players[attacker.target] && attacker.target!==ai)? attacker.target : ((ai+1)%state.playerCount);
+      const gEl = document.getElementById('grid'+tgt);
+      if(!gEl) return;
+
+      // highlight targetable cells for visibility
+      Array.from(gEl.children).forEach((cell,cellIdx)=>{
+        const defP = state.players[tgt];
+        const model = defP && defP.cells ? defP.cells[cellIdx] : null;
+        if(model && model.allowed) cell.classList.add('targetable');
+      });
+
+      // Remove prior to avoid stacking
+      gEl._aimHandlers = gEl._aimHandlers || {};
+      if(gEl._aimHandlers[ai]) gEl.removeEventListener('click', gEl._aimHandlers[ai]);
+
+      const handler = (ev)=>{
+        const cell = ev.target.closest('.cell');
+        if(!cell) return;
+        const cellsArr = Array.from(gEl.children);
+        const idx = cellsArr.indexOf(cell);
+        if(idx<0) return;
+        attacker.aimIndex = idx;
+        save();
+        renderAims();
+        // lightly update the status line without a full re-render
+        const resEl = document.getElementById('res'+ai);
+        if(resEl) resEl.textContent = 'Aimed ' + (idx+1); // re-render to show "Aimed @" chip
+      };
+
+      gEl.addEventListener('click', handler);
+      gEl._aimHandlers[ai] = handler;
+    });
+  }
+
+  /* ===== Draw / stance / band ===== */
+  function drawFor(p){
+  const notes=[];
+  if(p.deck.length===0 && p.discards.length>0){ p.deck=p.discards.splice(0); shuffle(p.deck); }
+  if(p.deck.length===0) return {final:'—',notes:['Deck empty'],color:'#8b97a5'};
+
+  // --- Stance v2 scaling by ship size ---
+  const tier = shipTier(p); // 'small' | 'medium' | 'large'
+
+  // Maneuver: Juke band shift with tiered success
+  if(p.stance==='JUKEUP' || p.stance==='JUKEDN'){
+    let need = 0, ok = false, roll = 20;
+    if(tier==='small'){ ok = true; need = 0; }
+    else if(tier==='medium'){ need = 8; roll = d20(); ok = (roll >= need); }
+    else { need = 12; roll = d20(); ok = (roll >= need); }
+    if(ok){
+      shiftBand(p, p.stance==='JUKEUP'? +1 : -1);
+      notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✓ → ${p.band}${tier!=='small'?` (d20 ${roll}≥${need})`:''}`);
+    }else{
+      notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✗ (d20 ${roll}<${need})`);
+    }
+  }
+
+  // Build draw pool (Defense: Evade adds MISS by tier)
+  const pool=p.deck.slice();
+  if(p.stance==='EVADE'){
+    const add = (tier==='small')?3 : (tier==='medium')?2 : 1;
+    for(let k=0;k<add;k++) pool.push('MISS');
+    notes.push(`Evade: +${add} MISS this draw`);
+  }
+
+  // Draw
+  const first=pool[(Math.random()*pool.length)|0]; let result=first;
+  let i=p.deck.lastIndexOf(first); if(i>=0){ p.hand.push(p.deck.splice(i,1)[0]); }
+
+  // Disrupt: Jam (force redraw on HIT)
+  if(p.stance==='JAM' && result==='HIT'){
+    notes.push('Jam: Hit → redraw');
+    const pool2=p.deck.slice(); if(p.stance==='EVADE'){ const add = (tier==='small')?3:(tier==='medium')?2:1; for(let k=0;k<add;k++) pool2.push('MISS'); }
+    if(pool2.length){
+      const second=pool2[(Math.random()*pool2.length)|0];
+      let j=p.deck.lastIndexOf(second); if(j>=0){ p.hand.push(p.deck.splice(j,1)[0]); }
+      notes.push(`Second: ${second}`); result=second;
+    }
+  }
+
+  // Disrupt: Countermeasures (on CRIT)
+  if(p.stance==='COUNTER' && first==='CRIT'){
+    let removed=false, r=p.deck.lastIndexOf('CRIT');
+    if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('CRIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
+    if(!removed){ const c=byId(p,'CRIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
+    notes.push(removed? 'Counter: -1 CRIT (perm)':'Counter: no CRIT to remove');
+  }
+
+  // Disrupt: Sabotage
+  if(p.stance==='SABOT'){
+    const where=(Math.random()*(p.deck.length+1))|0;
+    p.deck.splice(where,0,'MISS'); ensureKey(p,'MISS'); byId(p,'MISS').count=(+byId(p,'MISS').count||0)+1;
+    notes.push('Sabotage: +1 MISS (perm)');
+  }
+
+  // Disrupt: Scramble
+  if(p.stance==='SCRUB'){
+    let removed=false, r=p.deck.lastIndexOf('HIT');
+    if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('HIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
+    if(!removed){ const c=byId(p,'HIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
+    notes.push(removed? 'Scramble: -1 HIT (perm)':'Scramble: no HIT to remove');
+  }
+
+  // Defense: Brace with tiered downgrade
+  if(p.stance==='BRACE'){
+    if(result==='CRIT'){
+      if(tier==='small'){ result='HIT'; notes.push('Brace: CRIT → HIT'); }
+      else if(tier==='medium'){ result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
+      else { result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
+    } else if(result==='GLNC' && tier==='large'){
+      result='MISS'; notes.push('Brace: GLNC → MISS (large)');
+    }
+  }
+
+  const def = byId(p,result) || {name:result, color:'#6ea8fe'};
+  return {final:result,notes,color:def.color};
+}
+  function shiftBand(p,delta){ const i=BANDS.indexOf(p.band); p.band=BANDS[Math.min(BANDS.length-1,Math.max(0,i+delta))]; }
+
+  /* ===== Patterns & damage application ===== */
+  function neighbors8(index){
+    const r=(index/N)|0, c=index%N;
+    const out=[];
+    for(let dr=-1; dr<=1; dr++){
+      for(let dc=-1; dc<=1; dc++){
+        if(dr===0 && dc===0) continue;
+        const rr=r+dr, cc=c+dc;
+        if(inBounds(rr,cc,N)) out.push(rr*N+cc);
+      }
+    }
+    return out;
+  }
+  function nearestEdgeDirection(defender, index){
+    const r=(index/N)|0, c=index%N;
+    const allowed = i=> defender.cells[i] && defender.cells[i].allowed;
+    let up=0; for(let rr=r; rr>=0 && allowed(rr*N+c); rr--) up++;
+    let down=0; for(let rr=r; rr<N  && allowed(rr*N+c); rr++) down++;
+    let left=0; for(let cc=c; cc>=0 && allowed(r*N+cc); cc--) left++;
+    let right=0; for(let cc=c; cc<N  && allowed(r*N+cc); cc++) right++;
+    const map=[['up',up],['down',down],['left',left],['right',right]].sort((a,b)=>a[1]-b[1]);
+    return map[0][0];
+  }
+  function lineCellsFrom(defender, index){
+    const dir = nearestEdgeDirection(defender, index);
+    const r=(index/N)|0, c=index%N;
+    const step = (dr,dc)=>{
+      const cells=[index];
+      let rr=r+dr, cc=c+dc;
+      for(let k=0;k<2;k++){
+        if(!inBounds(rr,cc,N)) break;
+        const id=rr*N+cc;
+        if(!defender.cells[id] || !defender.cells[id].allowed) break;
+        cells.push(id);
+        rr+=dr; cc+=dc;
+      }
+      return cells;
+    };
+    if(dir==='up')    return step(+1, 0);
+    if(dir==='down')  return step(-1, 0);
+    if(dir==='left')  return step( 0,+1);
+    return              step( 0,-1);
+  }
+
+  function applyDamage(attacker, defender, hitIndex, result){
+    const w = getWeaponFamily(attacker);
+    if(!w) return {ok:false,msg:'No weapon installed'};
+    if(WEAPON_RANGE[w] !== attacker.band) return {ok:false,msg:`${w} out of range (${WEAPON_RANGE[w]})`};
+    if(hitIndex==null) return {ok:false,msg:'No target selected'};
+
+    const base = countWeaponsOfType(attacker, w);
+    if(base<=0) return {ok:false,msg:'All weapons destroyed'};
+
+    let delta = 0;
+    if(result==='CRIT') delta = +2;
+    else if(result==='GLNC') delta = -1;
+
+    if(result==='MISS' || result==='—'){
+      return {ok:false,msg:'Miss'};
+    }
+    if(result==='EMP'){
+      const cell=defender.cells[hitIndex]; if(cell && cell.partId){
+        const pid=cell.partId;
+        defender.cells.forEach(c=>{ if(c.partId===pid) c.emp=true; });
+        return {ok:true,msg:`EMP on part ${pid}`};
+      }
+      return {ok:false,msg:'EMP no effect'};
+    }
+
+    const dmgPrimary = Math.max(0, base + delta);
+    const dmgByPart = {};
+    const add = (idx, amount)=> {
+      if(amount<=0) return;
+      const cell = defender.cells[idx];
+      if(!cell || !cell.partId) return;
+      const pid = cell.partId;
+      dmgByPart[pid] = (dmgByPart[pid]||0) + amount;
+    };
+
+    if(w==='cannon' || w==='laser'){
+      add(hitIndex, dmgPrimary);
+    }else if(w==='missile'){
+      add(hitIndex, dmgPrimary);
+      neighbors8(hitIndex).forEach(id=> add(id, base)); // splash at base
+    }else if(w==='railgun'){
+      const cells = lineCellsFrom(defender, hitIndex);
+      cells.forEach((id,k)=> add(id, k===0?dmgPrimary:base));
+    }
+
+    for(const pid in dmgByPart){
+      const part = defender.parts[pid];
+      if(!part) continue;
+      part.hp = Math.max(0, part.hp - dmgByPart[pid]);
+    }
+    // remove destroyed parts
+    for(const pid in defender.parts){
+      const part = defender.parts[pid];
+      if(part && part.hp<=0){
+        defender.cells.forEach(c=>{ if(c.partId==pid){ c.type=null; c.emp=false; c.partId=null; } });
+        delete defender.parts[pid];
+      }
+    }
+
+    return {ok:true,msg:`${w} applied (${base}${delta? (delta>0?`+${delta}`:`${delta}`):''})`};
+  }
+
+  /* ===== Log / helpers ===== */
+  function pushLog(html){ const stamp=new Date().toLocaleTimeString(); tableLog.innerHTML=`<div class="mini" style="opacity:.6">${stamp}</div><div>${html}</div><hr style="border-color:#223042;opacity:.4"/>`+tableLog.innerHTML; }
+  function flash(cell,color){ const prev=cell.style.boxShadow; cell.style.boxShadow=`0 0 0 2px ${color} inset`; setTimeout(()=> cell.style.boxShadow=prev,350); }
+  function renderAims(){
+  // clear previous aimed marks on all grids
+  for(let gi=0; gi<state.playerCount; gi++){
+    const gEl = document.getElementById('grid'+gi);
+    if(!gEl) continue;
+    Array.from(gEl.children).forEach(c=> c.classList.remove('aimed'));
+  }
+  // paint each player's aim onto their target's grid
+  state.players.forEach((p, ai)=>{
+    if(p.aimIndex==null || p.mode!=='play') return;
+    const tgt = (state.players[p.target] && p.target!==ai)? p.target : ((ai+1)%state.playerCount);
+    const gEl = document.getElementById('grid'+tgt);
+    if(!gEl) return;
+    const cell = gEl.children[p.aimIndex];
+    if(cell) cell.classList.add('aimed');
+  });
+}
+  /* ===== Volley resolve ===== */
+  document.getElementById('resolve').onclick = ()=>{
+    // draw for all
+    state.players.forEach((p,i)=>{
+      const out = drawFor(p);
+      p.pending = out.final;
+      const rEl = document.getElementById('res'+i);
+      const cEl = document.getElementById('ctx'+i);
+      rEl.textContent = `${out.final}`;
+      rEl.style.color  = out.color;
+      if(out.notes.length){ cEl.style.display='block'; cEl.textContent=out.notes.join(' • '); } else { cEl.style.display='none'; }
+    });
+
+    // apply all
+    state.players.forEach((p,i)=>{
+      const tgt = (state.players[p.target] && p.target!==i)? p.target : ((i+1)%state.playerCount);
+      const defender = state.players[tgt];
+      const aim = p.aimIndex;
+
+      if(aim==null){ pushLog(`${p.name}: no target selected`); return; }
+
+      const out = applyDamage(p, defender, aim, p.pending);
+      if(out.ok){
+        pushLog(`${p.name} → ${defender.name}: <b>${p.pending}</b> at ${aim+1}`);
+      }else{
+        pushLog(`${p.name} → ${defender.name}: ${out.msg}`);
+      }
+      p.pending = null;
+    });
+
+    // refresh
+    for(let i=0;i<state.playerCount;i++) renderGrid(i);
+    renderAims();
+    save();
+  };
+
+  document.getElementById('clearTargets').onclick = ()=>{
+    state.players.forEach(p=> p.aimIndex=null);
+    // remove targetable highlight
+    for(let i=0;i<state.playerCount;i++){
+      const g = document.getElementById('grid'+i);
+      if(!g) continue;
+      Array.from(g.children).forEach(c=> c.classList.remove('targetable','aimed'));
+    }
+    renderAims();
+  };
+
+  /* ===== Init ===== */
+  function clampPlayers(){ while(state.players.length<state.playerCount) state.players.push(makePlayer(state.players.length)); while(state.players.length>state.playerCount) state.players.pop(); }
+  load(); clampPlayers();
+  renderSetup();
+  document.getElementById('start').onclick=()=>{ showBattle(); renderVolley(); save(); };
+  showSetup();
+})();
+</script>
 </body>
 </html>
