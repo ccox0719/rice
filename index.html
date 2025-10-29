@@ -1,893 +1,555 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Cosmoteer — Ship Mask Playtest</title>
-<style>
-  :root{--bg:#0b0f15;--panel:#121826;--text:#eaf0f8;--muted:#9aa7b2;--border:#223042;--ok:#06d6a0;--warn:#ffd166;--danger:#ff6b6b;--accent:#6ea8fe}
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:#0b0f15;color:var(--text)}
-  header{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;padding:10px 12px;background:rgba(12,16,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-  header h1{margin:0;font-size:16px;font-weight:800}
-  .sp{flex:1}
-  .ghostbtn{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:8px 12px;cursor:pointer}
-  .wrap{max-width:1150px;margin:10px auto 120px;padding:0 12px 160px}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  input,select,button{border-radius:12px;border:1px solid var(--border);background:#0f1522;color:#eaf0f8;padding:10px 12px}
-  button.primary{background:var(--ok);color:#112;font-weight:800;border-color:#129e7e}
-  .mini{font-size:12px;color:var(--muted)}
-
-  .volley{display:grid;gap:12px;grid-template-columns:1fr}
-  @media(min-width:900px){.volley{grid-template-columns:1fr 1fr}}
-
-  .player{background:linear-gradient(180deg,#0f1522,#0a1019);border:1px solid var(--border);border-radius:14px;padding:12px;display:grid;gap:10px}
-  .title{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .name{font-weight:900}
-  .tags{display:flex;gap:8px;flex-wrap:wrap}
-  .tag{border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:13px;background:#0f1522}
-  .tag.click{cursor:pointer;background:#122036}
-  .result{font-size:18px;font-weight:900;text-align:center}
-  .ctx{font-size:12px;color:#cfe1ff;border:1px dashed var(--border);border-radius:10px;padding:6px 8px;display:none}
-
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-  .palette{display:flex;gap:8px;flex-wrap:wrap}
-  .tool{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:#0f1522;cursor:pointer}
-  .tool.active{outline:2px solid #ffffff22}
-  .tool .emoji{font-size:18px}
-  .tool .lbl{font-size:13px}
-
-  .grid{--n:12;display:grid;grid-template-columns:repeat(var(--n),minmax(22px,1fr));gap:2px;border:1px solid var(--border);padding:6px;border-radius:10px;background:#0f141c}
-  .cell{aspect-ratio:1;border:1px solid #1d2a3a;border-radius:6px;background:#0e1520;box-shadow:0 0 0 1px #000 inset;position:relative;display:flex;align-items:center;justify-content:center}
-  .off{background:#0a0f15; opacity:.35}
-  .on{background:#101b2a}
-  .module{background:#15263d}
-  .damaged{background:#ffd16633}
-  .emp{outline:2px dashed #9df0aeaa}
-  .targetable{outline:2px solid #6ea8fe88}
-  .aimed{outline:3px solid #06d6a0aa}
-  .ghostShape{background:#6ea8fe1a; outline:2px dashed #6ea8fe55}
-  .invalidGhost{background:#ef476f10; outline-color:#ef476f77}
-  .badge{position:absolute;inset:auto 2px 2px auto;font-size:13px}
-  .core {box-shadow:0 0 0 2px #a66bff inset}
-  .shield {box-shadow:0 0 0 2px #9df0ae66 inset}
-  .armor {box-shadow:0 0 0 2px #8899aa66 inset}
-  .engine {box-shadow:0 0 0 2px #ff9b6b66 inset}
-  .cannon {box-shadow:0 0 0 2px #f08cff66 inset}
-  .railgun {box-shadow:0 0 0 2px #6ea8fe66 inset}
-  .missile {box-shadow:0 0 0 2px #ffbd7a66 inset}
-  .laser {box-shadow:0 0 0 2px #e86eff66 inset}
-  .plate {box-shadow:0 0 0 2px #b0c4d866 inset}
-
-  .fab{position:fixed;inset:auto 0 0 0;background:rgba(12,16,24,.92);border-top:1px solid var(--border);padding:12px;display:flex;gap:10px;z-index:30}
-  .fab button{flex:1;padding:15px 18px;font-size:16px;font-weight:800;border-radius:14px}
-  .log{max-height:220px;overflow:auto;background:#0f141c;border:1px solid var(--border);border-radius:10px;padding:8px;font-size:13px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rice Bowl — Menu Builder + Scale Planner</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<header>
-  <h1>Cosmoteer — Ship Mask Playtest</h1>
-  <div class="sp"></div>
-  <button id="toInfo" class="ghostbtn">Info</button>
-  <button id="toSetup" class="ghostbtn" style="display:none">Setup</button>
-</header>
-
-<!-- SETUP -->
-<div class="wrap" id="screen-setup">
-  <div class="card">
-    <h2 style="margin:0 0 8px 0">Players</h2>
-    <div class="row">
-      <label>Count:</label>
-      <select id="playerCount"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+  <div class="wrap">
+    <header class="app-chrome">
+      <button class="hamburger" type="button" id="navToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="brand">
+        <span class="brand-icon">🍚</span>
+        <div class="brand-meta">
+          <span class="brand-title">Rice Bowl Planner</span>
+          <span class="brand-sub">Menu • Costs • Staffing</span>
+        </div>
+      </div>
+      <div class="header-actions"></div>
+    </header>
+    <div class="side-nav" id="sideNav">
+      <nav>
+        <button class="nav-link active" data-tab="menu">Menu Builder</button>
+        <button class="nav-link" data-tab="planner">Scale &amp; Staffing Planner</button>
+        <button class="nav-link" data-tab="tasks">Weekly Tasks</button>
+        <button class="nav-link" data-tab="prep">Prep Library</button>
+        <hr>
+        <button class="nav-link" id="recipeModalLink">Recipes &amp; Components</button>
+        <button class="nav-link" id="downloadPrices">Download Price CSV</button>
+        <button class="nav-link" id="uploadPrices">Upload Price CSV</button>
+      </nav>
     </div>
-    <div id="setupGrid" class="row" style="gap:12px;flex-direction:column"></div>
-    <div class="row" style="margin-top:10px">
-      <button id="start" class="primary">Start</button>
-    </div>
-    <div class="mini">Choose names & ship masks now—components are placed on the battle screen.</div>
-  </div>
-</div>
 
-<!-- BATTLE -->
-<div class="wrap" id="screen-battle" style="display:none">
-  <div class="card">
-    <div id="volley" class="volley"></div>
-  </div>
-  <div class="card" style="margin-top:10px">
-    <h3 style="margin:6px 0">Table Log</h3>
-    <div id="tableLog" class="log"></div>
-  </div>
-</div>
-
-<!-- INFO -->
-<div class="wrap" id="screen-info" style="display:none">
-  <div class="card">
-    <h2>Build → Play</h2>
-    <ol class="mini" style="line-height:1.6">
-      <li>Pick a <b>ship mask</b>. <span style="opacity:.9">Blue</span> cells are buildable hull; <span style="opacity:.7">gray</span> cells are blocked.</li>
-      <li><b>One weapon family per ship</b> (railgun / cannon / missile / laser). You may install multiple copies of that family.</li>
-      <li><b>Build:</b> select a component to preview its <b>ghost footprint</b>; tap again to place (use <i>Rotate</i> to turn).</li>
-      <li><b>Play:</b> tap the <b>opponent’s grid</b> to set your <b>target</b> cell first, then press <b>Resolve Volley</b>.</li>
-      <li><b>Damage = # of your surviving weapons.</b> Card effects: <b>CRIT</b> +2 (primary cell), <b>GLNC</b> −1 (primary), <b>MISS</b> = 0, <b>EMP</b> disables that part.</li>
-      <li><b>Ranges & patterns:</b> Cannon = Close; Laser = Mid; Missile = Long <i>+ splash</i> to adjacent 8; Railgun = Long <i>+ line</i> through up to 2 behind.</li>
-      <li><b>HP:</b> most parts 3; Shield 2; Armor 4. When a part reaches 0 HP, remove the entire part (all its cells).</li>
-      <li><b>Line of Sight:</b> top = ship front. You may only target the <b>frontmost occupied cell</b> in a column; cells “behind” another part are not targetable.</li>
-      <li><b>Stances v2:</b> pick one per volley. Small ships (≤40 cells) excel at Maneuver (Juke auto) and Evade (+3 MISS). Medium (41–60) roll 8+ for Juke and get +2 MISS. Large (≥61) roll 12+ for Juke, Evade is +1 MISS, and Brace is strongest (CRIT→GLNC and GLNC→MISS).</li>
-    </ol>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<div class="fab">
-  <button id="resolve" class="primary">Resolve Volley</button>
-  <button id="clearTargets" class="ghostbtn">Clear Targets</button>
-</div>
-
-<script>
-(function(){
-  const STORE='cosmo_shipmask_playtest_v5';
-
-  /* ===== Cards / presets / stances ===== */
-  const CARDS = [
-    {id:'HIT',  name:'Hit',            effect:'Normal hit',           color:'#6ea8fe', count:12},
-    {id:'MISS', name:'Miss',           effect:'Attack fails',         color:'#8b97a5', count:6},
-    {id:'CRIT', name:'Critical Hit',   effect:'Massive hit',          color:'#ef476f', count:4},
-    {id:'GLNC', name:'Glancing Hit',   effect:'Light hit',            color:'#ffd166', count:3},
-    {id:'EMP',  name:'EMP',            effect:'Disabled 1 volley',    color:'#9df0ae', count:3},
-  ];
-  const PRESETS = {
-    Balanced:{HIT:12,MISS:6,CRIT:4,GLNC:3,EMP:3},
-    Interceptor:{HIT:11,MISS:7,CRIT:3,GLNC:3,EMP:3},
-    Gunship:{HIT:12,MISS:5,CRIT:5,GLNC:2,EMP:2},
-    Carrier:{HIT:10,MISS:6,CRIT:3,GLNC:3,EMP:4},
-    Support:{HIT:10,MISS:6,CRIT:3,GLNC:3,EMP:5}
-  };
-  const STANCES = [
-    {id:'NONE',     label:'None'},
-    {id:'EVADE',    label:'Evade'},
-    {id:'BRACE',    label:'Brace'},
-    {id:'JAM',      label:'Jam'},
-    {id:'COUNTER',  label:'Counter'},
-    {id:'SABOT',    label:'Sabotage'},
-    {id:'JUKEUP',   label:'Juke Far'},
-    {id:'JUKEDN',   label:'Juke Close'},
-    {id:'SCRUB',    label:'Scramble'}
-  ];
-  const BANDS = ['Close','Mid','Long'];
-  const PRESETN = Object.keys(PRESETS);
-
-  /* ===== Base HP ===== */
-  const DEFAULT_HP = 3;
-  const BASE_HP = { shield: 2, armor: 4 };
-
-  /* ===== Weapons & ranges ===== */
-  const WEAPON_RANGE = { cannon:'Close', laser:'Mid', missile:'Long', railgun:'Long' };
-  const WEAPON_TYPES = Object.keys(WEAPON_RANGE);
-
-  // --- Stance v2 helpers ---
-  function maskCellCount(p){ return p.cells.reduce((s,c)=> s + (c.allowed?1:0), 0); }
-  function shipTier(p){
-    const n = maskCellCount(p);
-    if(n <= 40) return 'small';
-    if(n <= 60) return 'medium';
-    return 'large';
-  }
-  function d20(){ return (Math.random()*20|0) + 1; }
-
-  /* ===== Utils ===== */
-  const $ = s=>document.querySelector(s);
-  const el=(t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
-  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
-  function byId(p,key){ return p.cards.find(c=>c.id===key); }
-  function ensureKey(p,key){ if(!byId(p,key)) p.cards.push({id:key,name:key,effect:'(added)',color:'#8b97a5',count:0}); }
-  function buildDeck(p){ p.deck=[]; p.discards=[]; p.hand=[]; p.cards.forEach(c=>{ for(let i=0;i<(+c.count||0);i++) p.deck.push(c.id); }); shuffle(p.deck); }
-  const rotateShape = sh => sh[0].map((_,i)=> sh.map(r=>r[i]).reverse());
-  const inBounds=(r,c,N=12)=> r>=0&&c>=0&&r<N&&c<N;
-
-  /* ===== Ship masks (12×12) ===== */
-  const N=12;
-  function emptyMask(){return Array(N*N).fill(0);}
-  const MASKS = {
-    Arrowhead: (()=>{
-      const m=emptyMask();
-      const rows = [[5,6],[4,7],[3,8],[2,9],[3,8],[4,7],[5,6]];
-      let r=1; rows.forEach(([a,b])=>{ for(let c=a;c<=b;c++) m[r*N+c]=1; r++; });
-      return m;
-    })(),
-    Wedge: (()=>{
-      const m=emptyMask();
-      for(let r=2;r<10;r++){
-        for(let c=3;c<9;c++){
-          const max = (r<6? 3+r-2 : 9-(r-6));
-          if(c>=3 && c<=max) m[r*N+c]=1;
-        }
-      }
-      return m;
-    })(),
-    Brick: (()=>{
-      const m=emptyMask();
-      for(let r=3;r<9;r++) for(let c=3;c<9;c++) m[r*N+c]=1;
-      return m;
-    })(),
-    Crescent: (()=>{
-      const m=emptyMask();
-      for(let r=2;r<10;r++) for(let c=2;c<10;c++){
-        const dx=r-6, dy=c-6; const d=Math.sqrt(dx*dx+dy*dy);
-        if(d<5.2 && d>2.2 && !(r>6 && c>6)) m[r*N+c]=1;
-      }
-      return m;
-    })()
-  };
-  const MASK_NAMES=Object.keys(MASKS);
-
-  /* ===== Components (Core 2×2, no Reactor) ===== */
-  const TOOLS = [
-    {id:'pointer', label:'Pointer', emoji:'🖐️', shape:[[1]], style:''},
-    {id:'eraser',  label:'Erase',   emoji:'🧽', shape:[[1]], style:''},
-    {id:'core',    label:'Core',    emoji:'💠', shape:[[1,1],[1,1]], style:'core'},  // 2×2
-    {id:'shield',  label:'Shield',  emoji:'🛡️', shape:[[1]], style:'shield'},
-    {id:'armor',   label:'Armor',   emoji:'🪨', shape:[[1]], style:'armor'},
-    {id:'engine',  label:'Engine',  emoji:'🚀', shape:[[1,1]], style:'engine'},
-    {id:'plate',   label:'Plate',   emoji:'🧱', shape:[[1,1],[1,1]], style:'plate'},
-    /* Weapons — only one family allowed per ship */
-    {id:'railgun', label:'Railgun', emoji:'🎯', shape:[[1,1,1]], style:'railgun'},
-    {id:'cannon',  label:'Cannon',  emoji:'🛰️', shape:[[1,1,1]], style:'cannon'},
-    {id:'missile', label:'Missile', emoji:'🎇', shape:[[1,1]],   style:'missile'},
-    {id:'laser',   label:'Laser',   emoji:'🔫', shape:[[1]],     style:'laser'}
-  ];
-
-  function typeEmoji(t){
-    if(t==='core') return '💠';
-    if(t==='shield') return '🛡️';
-    if(t==='armor') return '🪨';
-    if(t==='engine') return '🚀';
-    if(t==='plate') return '🧱';
-    if(t==='railgun') return '🎯';
-    if(t==='cannon') return '🛰️';
-    if(t==='missile') return '🎇';
-    if(t==='laser') return '🔫';
-    return '';
-  }
-
-  /* ===== Player model ===== */
-  function makePlayer(i){
-    const name=['Alpha','Bravo','Charlie','Delta'][i]||`P${i+1}`;
-    const presetName=PRESETN[i%PRESETN.length];
-    const maskName  =MASK_NAMES[i%MASK_NAMES.length];
-
-    const cards=JSON.parse(JSON.stringify(CARDS));
-    const deck=[],discards=[],hand=[],log=[];
-    const stance='NONE', band='Mid';
-    const target=(i+1)%2;
-
-    const map=PRESETS[presetName]; cards.forEach(c=> c.count=map[c.id]??0);
-    for(const c of cards){ for(let k=0;k<c.count;k++) deck.push(c.id); }
-    shuffle(deck);
-
-    const cells = Array.from({length:N*N},()=>({allowed:false, type:null, emp:false, partId:null}));
-    const mask  = MASKS[maskName]; mask.forEach((v,idx)=> cells[idx].allowed=!!v);
-
-    return {
-      name, presetName, cards, deck, discards, hand, log,
-      stance, band, target, maskName, cells,
-      parts: {}, nextPartId: 1,
-      mode: 'build', tool: 'pointer', rot: 0,
-      aimIndex: null,  // chosen target cell
-      pending: null
-    };
-  }
-
-  let state = {playerCount:2, players:[makePlayer(0),makePlayer(1)]};
-
-  /* ===== Storage & screens ===== */
-  function load(){ const raw=localStorage.getItem(STORE); if(!raw){save(); return;} try{ const d=JSON.parse(raw); if(d.playerCount) state.playerCount=d.playerCount; if(d.players) state.players=d.players; }catch(e){} }
-  function save(){ localStorage.setItem(STORE, JSON.stringify(state)); }
-
-  const screenSetup=$('#screen-setup'), screenBattle=$('#screen-battle'), screenInfo=$('#screen-info');
-  const toSetup=$('#toSetup'), toInfo=$('#toInfo');
-  function showSetup(){ screenSetup.style.display='block'; screenBattle.style.display='none'; screenInfo.style.display='none'; toSetup.style.display='none'; }
-  function showBattle(){ screenSetup.style.display='none'; screenBattle.style.display='block'; screenInfo.style.display='none'; toSetup.style.display='inline-block'; }
-  function showInfo(){ screenSetup.style.display='none'; screenBattle.style.display='block'; screenInfo.style.display='block'; toSetup.style.display='inline-block'; }
-  toInfo.onclick=showInfo; toSetup.onclick=showSetup;
-
-  /* ===== Setup ===== */
-  const playerCountSel=$('#playerCount');
-  const setupGrid=$('#setupGrid');
-  playerCountSel.onchange=()=>{ state.playerCount=+playerCountSel.value; clampPlayers(); renderSetup(); save(); };
-  function clampPlayers(){ while(state.players.length<state.playerCount) state.players.push(makePlayer(state.players.length)); while(state.players.length>state.playerCount) state.players.pop(); }
-  function renderSetup(){
-    playerCountSel.value=String(state.playerCount);
-    setupGrid.innerHTML='';
-    state.players.forEach((p,i)=>{
-      const row=el('div','row');
-      row.innerHTML=`
-        <input id="nm${i}" value="${p.name}" placeholder="Name"/>
-        <label>Preset:</label><select id="ps${i}"></select>
-        <label>Ship:</label><select id="mk${i}"></select>
-      `;
-      setupGrid.appendChild(row);
-      const ps=row.querySelector('#ps'+i), mk=row.querySelector('#mk'+i);
-      PRESETN.forEach(n=>{ const o=el('option'); o.value=n; o.textContent=n; ps.appendChild(o); });
-      MASK_NAMES.forEach(n=>{ const o=el('option'); o.value=n; o.textContent=n; mk.appendChild(o); });
-      ps.value=p.presetName; mk.value=p.maskName;
-      row.querySelector('#nm'+i).oninput=e=>{ p.name=e.target.value; save(); renderVolley(); };
-      ps.onchange=e=>{ p.presetName=e.target.value; const map=PRESETS[p.presetName]; p.cards.forEach(c=> c.count=map[c.id]??0); buildDeck(p); save(); };
-      mk.onchange=e=>{
-        p.maskName=e.target.value;
-        p.cells.forEach(c=>{ c.allowed=false; c.type=null; c.emp=false; c.partId=null; });
-        p.parts = {}; p.nextPartId=1; p.aimIndex=null;
-        const mask=MASKS[p.maskName]; mask.forEach((v,idx)=> p.cells[idx].allowed=!!v);
-        p.mode='build';
-        save(); renderVolley();
-      };
-    });
-  }
-  document.getElementById('start').onclick=()=>{ showBattle(); renderVolley(); save(); };
-
-  /* ===== Battle ===== */
-  const volley=$('#volley'), tableLog=$('#tableLog');
-
-  function renderVolley(){
-    volley.innerHTML='';
-    state.players.forEach((p,i)=>{
-      const card=el('div','player'); card.dataset.idx=i;
-
-      card.innerHTML=`
-        <div class="title">
-          <div class="name">${p.name}</div>
-          <div class="tags">
-            <span class="tag">${p.presetName}</span>
-            <span class="tag click" data-act="stance" data-i="${i}">Stance: ${STANCES.find(s=>s.id===p.stance)?.label||'None'}</span>
-            <span class="tag click" data-act="band" data-i="${i}">Band: ${p.band}</span>
-            <span class="tag">${p.mode==='build'?'Build':'Play'}</span>
-            ${p.aimIndex!=null ? `<span class="tag" style="background:#11273f;border-color:#285;">Aimed @ ${p.aimIndex+1}</span>`:''}
-            ${p.pending ? `<span class="tag" style="background:#11273f;border-color:#285; color:#cfe1ff">Pending: ${p.pending}</span>`:''}
+    <div id="tab-menu" class="tab active">
+      <section class="card">
+        <h3>Add Menu Item</h3>
+        <div class="grid">
+          <div>
+            <label for="menuSelect">Menu item</label>
+            <select id="menuSelect"></select>
+          </div>
+          <div>
+            <label for="menuQty">Bowls to prep</label>
+            <input id="menuQty" type="number" value="25" min="1">
           </div>
         </div>
+        <div class="button-group">
+          <button class="primary" type="button" onclick="MB.addItem()">Add item</button>
+          <button class="secondary" type="button" onclick="MB.clearItems()">Clear list</button>
+          <span class="badge" id="exportStatus">Not exported yet</span>
+        </div>
 
-        <div class="toolbar">
-          <div class="row">
-            <button class="ghostbtn rot" data-i="${i}">Rotate</button>
-            <button class="ghostbtn mode" data-i="${i}">${p.mode==='build'?'Lock Build':'Unlock Build'}</button>
-            <label>Target:</label>
-            <select class="who" data-i="${i}"></select>
+        <h3 class="mt">Tonight’s Items</h3>
+        <div class="table-wrap">
+          <table id="itemsTable"></table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Per-Serving &amp; Yields</h3>
+        <div class="grid">
+          <div><label for="ps_rice_cups">Jasmine rice (cups cooked / bowl)</label><input id="ps_rice_cups" type="number" value="1.0" step="0.05"></div>
+          <div><label for="ps_slaw_oz">Slaw (oz / bowl)</label><input id="ps_slaw_oz" type="number" value="1.5" step="0.1"></div>
+          <div><label for="ps_onions_oz">Pickled onions (oz / bowl)</label><input id="ps_onions_oz" type="number" value="0.7" step="0.1"></div>
+          <div><label for="ps_carrot_oz">Julienne carrots (oz / bowl)</label><input id="ps_carrot_oz" type="number" value="0.8" step="0.1"></div>
+          <div><label for="ps_cuke_oz">Julienne cucumbers (oz / bowl)</label><input id="ps_cuke_oz" type="number" value="0.8" step="0.1"></div>
+          <div><label for="ps_herb_oz">Herbs (oz / bowl)</label><input id="ps_herb_oz" type="number" value="0.2" step="0.1"></div>
+          <div><label for="ps_pcarrot_oz">Buffalo extras — Pickled carrots (oz / bowl)</label><input id="ps_pcarrot_oz" type="number" value="0.7" step="0.1"></div>
+          <div><label for="ps_celery_oz">Buffalo extras — Celery (oz / bowl)</label><input id="ps_celery_oz" type="number" value="0.8" step="0.1"></div>
+          <div><label for="ps_salsa_oz">Corn salsa (fl oz / bowl)</label><input id="ps_salsa_oz" type="number" value="2.0" step="0.1"></div>
+        </div>
+
+        <h3>Protein portions (cooked oz / bowl)</h3>
+        <div class="grid">
+          <div><label for="ps_chicken_oz">Chicken</label><input id="ps_chicken_oz" type="number" value="4.0" step="0.1"></div>
+          <div><label for="ps_pork_oz">Pork</label><input id="ps_pork_oz" type="number" value="4.0" step="0.1"></div>
+          <div><label for="ps_gyro_oz">Gyro (beef+pork)</label><input id="ps_gyro_oz" type="number" value="4.0" step="0.1"></div>
+        </div>
+
+        <h3>Yields (cooked/raw)</h3>
+        <div class="grid">
+          <div><label for="yield_chicken">Chicken yield</label><input id="yield_chicken" type="number" value="0.70" step="0.01"></div>
+          <div><label for="yield_pork">Pork yield</label><input id="yield_pork" type="number" value="0.60" step="0.01"></div>
+          <div><label for="yield_gyro">Gyro yield</label><input id="yield_gyro" type="number" value="0.75" step="0.01"></div>
+        </div>
+
+        <h3>Sauces (oz / bowl)</h3>
+        <div class="grid">
+          <div><label for="ps_bbq_oz">BBQ</label><input id="ps_bbq_oz" type="number" value="1.0" step="0.1"></div>
+          <div><label for="ps_green_oz">Peruvian Green</label><input id="ps_green_oz" type="number" value="0.75" step="0.1"></div>
+          <div><label for="ps_toum_oz">Toum (Garlic)</label><input id="ps_toum_oz" type="number" value="0.75" step="0.1"></div>
+          <div><label for="ps_crema_oz">Cilantro-lime Aioli (Crema)</label><input id="ps_crema_oz" type="number" value="0.75" step="0.1"></div>
+          <div><label for="ps_peanut_oz">Thai Peanut</label><input id="ps_peanut_oz" type="number" value="1.0" step="0.1"></div>
+          <div><label for="ps_buffalo_oz">Buffalo</label><input id="ps_buffalo_oz" type="number" value="1.0" step="0.1"></div>
+          <div><label for="ps_tzatziki_oz">Tzatziki</label><input id="ps_tzatziki_oz" type="number" value="1.0" step="0.1"></div>
+          <div><label for="ps_mojo_oz">Cuban Mojo Mustard</label><input id="ps_mojo_oz" type="number" value="1.0" step="0.1"></div>
+        </div>
+
+        <h3>Rice Cooker</h3>
+        <div class="grid">
+          <div><label for="riceBatchCups">Rice cooker yield (cups cooked / batch)</label><input id="riceBatchCups" type="number" value="20" min="1"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Totals &amp; Shopping List</h3>
+        <div id="summary" class="muted">Add menu items above; quantities are bowls to prep.</div>
+        <div class="table-wrap"><table id="table"></table></div>
+        <div class="button-group">
+          <button class="secondary" type="button" onclick="MB.exportCSV()">Download CSV</button>
+          <button class="secondary" type="button" onclick="window.print()">Print</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Cost &amp; Profit</h3>
+        <div class="grid-3">
+          <div><label for="pricePerBowl">Price per bowl ($)</label><input id="pricePerBowl" type="number" value="12" step="0.01"></div>
+          <div><label for="costPack">Packaging ($/bowl)</label><input id="costPack" type="number" value="0.60" step="0.01"></div>
+
+          <div><label for="costChicken">Chicken ($/lb raw)</label><input id="costChicken" type="number" value="2.20" step="0.01"></div>
+          <div><label for="costPork">Pork ($/lb raw)</label><input id="costPork" type="number" value="2.48" step="0.01"></div>
+          <div><label for="costGyro">Gyro blend ($/lb raw)</label><input id="costGyro" type="number" value="3.20" step="0.01"></div>
+
+          <div><label for="costRice">Rice ($/lb dry)</label><input id="costRice" type="number" value="1.00" step="0.01"></div>
+          <div><label for="costSlaw">Slaw ($/lb)</label><input id="costSlaw" type="number" value="1.20" step="0.01"></div>
+          <div><label for="costCarrot">Carrots ($/lb)</label><input id="costCarrot" type="number" value="0.98" step="0.01"></div>
+          <div><label for="costCuke">Cucumbers ($/lb)</label><input id="costCuke" type="number" value="0.80" step="0.01"></div>
+          <div><label for="costCelery">Celery ($/lb)</label><input id="costCelery" type="number" value="0.95" step="0.01"></div>
+          <div><label for="costHerb">Herbs ($/lb)</label><input id="costHerb" type="number" value="8.00" step="0.01"></div>
+
+          <div><label for="costOnionQt">Pickled onion base ($/qt)</label><input id="costOnionQt" type="number" value="2.50" step="0.01"></div>
+          <div><label for="costPCarrotQt">Pickled carrot base ($/qt)</label><input id="costPCarrotQt" type="number" value="2.50" step="0.01"></div>
+
+          <div><label for="costBBQ">BBQ ($/gal)</label><input id="costBBQ" type="number" value="12.00" step="0.01"></div>
+          <div><label for="costGreen">Peruvian Green ($/gal)</label><input id="costGreen" type="number" value="14.00" step="0.01"></div>
+          <div><label for="costToum">Toum ($/gal)</label><input id="costToum" type="number" value="22.00" step="0.01"></div>
+          <div><label for="costCrema">Peruvian Green Crema ($/gal)</label><input id="costCrema" type="number" value="11.00" step="0.01"></div>
+          <div><label for="costBuffalo">Buffalo ($/gal)</label><input id="costBuffalo" type="number" value="16.00" step="0.01"></div>
+          <div><label for="costTzatziki">Tzatziki ($/gal)</label><input id="costTzatziki" type="number" value="20.00" step="0.01"></div>
+          <div><label for="costMojo">Mojo Mustard ($/gal)</label><input id="costMojo" type="number" value="8.00" step="0.01"></div>
+
+          <div><label for="costPeanutLb">Peanut Butter ($/lb)</label><input id="costPeanutLb" type="number" value="2.10" step="0.01"></div>
+          <div><label for="costSoyGal">Soy Sauce ($/gal)</label><input id="costSoyGal" type="number" value="8.00" step="0.01"></div>
+          <div><label for="costCoconutCan">Coconut Milk (13.5 oz can)</label><input id="costCoconutCan" type="number" value="1.60" step="0.01"></div>
+          <div><label for="costVinegarCup">Rice Vinegar ($/cup)</label><input id="costVinegarCup" type="number" value="0.40" step="0.01"></div>
+          <div><label for="costSugarLb">Brown Sugar ($/lb)</label><input id="costSugarLb" type="number" value="0.70" step="0.01"></div>
+
+          <div><label for="costCornCan">Corn (15 oz can) — $/can</label><input id="costCornCan" type="number" value="0.88" step="0.01"></div>
+          <div><label for="costPep">Bell peppers — $/each</label><input id="costPep" type="number" value="0.70" step="0.01"></div>
+          <div><label for="costTom">Roma tomatoes — $/lb</label><input id="costTom" type="number" value="1.80" step="0.01"></div>
+          <div><label for="costOnion">Red onions — $/lb</label><input id="costOnion" type="number" value="0.90" step="0.01"></div>
+          <div><label for="costCil">Cilantro — $/bunch</label><input id="costCil" type="number" value="0.60" step="0.01"></div>
+          <div><label for="costLimeJuice">Lime juice — $/cup</label><input id="costLimeJuice" type="number" value="0.90" step="0.01"></div>
+          <div><label for="costSaltTbsp">Salt — $/Tbsp</label><input id="costSaltTbsp" type="number" value="0.02" step="0.01"></div>
+        </div>
+        <div class="table-wrap"><table id="costs"></table></div>
+      </section>
+
+      <section class="card">
+        <h3>Price Sheet Sync</h3>
+        <p class="info">Use the CSV below to bulk edit pricing, ingredient costs, and staffing defaults.</p>
+        <div class="button-group">
+          <button class="secondary" type="button" id="priceDownload">Download Current CSV</button>
+          <button class="secondary" type="button" id="priceUploadBtn">Upload CSV</button>
+          <input type="file" id="priceFile" accept=".csv" hidden>
+        </div>
+        <small class="muted">Uploading a CSV applies values immediately. Save a copy of the download before making large changes.</small>
+      </section>
+    </div>
+
+    <div id="tab-planner" class="tab">
+      <section class="card" id="importCard">
+        <h3>Imported From Menu Builder</h3>
+        <div class="info" id="importMsg">Looking for export…</div>
+        <div class="button-group">
+          <button class="secondary" type="button" onclick="PL.refreshImport()">Refresh Import</button>
+          <button class="secondary" type="button" onclick="PL.applyImported()">Apply Imported Numbers</button>
+        </div>
+      </section>
+
+      <div class="row stack">
+        <section class="card">
+          <h3>Global Assumptions</h3>
+          <div class="grid">
+            <div><label for="pl_price">Price per bowl ($)</label><input id="pl_price" type="number" step="0.01" value="12"></div>
+            <div><label for="pl_foodCost">Food cost per bowl ($)</label><input id="pl_foodCost" type="number" step="0.01" value="2.11"></div>
+            <div><label for="pl_packCost">Packaging per bowl ($)</label><input id="pl_packCost" type="number" step="0.01" value="0.60"></div>
+            <div><label for="pl_activeMonths">Active months / year</label><input id="pl_activeMonths" type="number" step="1" value="8" min="1" max="12"></div>
           </div>
-          <div class="palette" id="palette${i}">
-            ${TOOLS.map(t=>`
-              <div class="tool ${p.tool===t.id?'active':''}" data-i="${i}" data-tool="${t.id}">
-                <span class="emoji">${t.emoji}</span><span class="lbl">${t.label}</span>
+          <small class="muted">Imported values come from Menu Builder (food-only excludes packaging).</small>
+          <hr class="sep">
+          <div class="grid">
+            <div><label for="pl_csvName">CSV filename</label><input id="pl_csvName" type="text" value="scale_staffing_summary.csv"></div>
+          </div>
+          <div class="button-group">
+            <button class="secondary" type="button" onclick="PL.presetSolo()">Preset: Solo / Family</button>
+            <button class="secondary" type="button" onclick="PL.presetCrew()">Preset: Crew-Run</button>
+            <button class="secondary" type="button" onclick="PL.presetMulti()">Preset: Multi-Crew</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>Fixed Monthly Costs (spread over active months)</h3>
+          <div class="grid">
+            <div><label for="fx_commissary">Commissary ($/mo)</label><input id="fx_commissary" type="number" step="1" value="300"></div>
+            <div><label for="fx_insurance">Insurance &amp; Licenses ($/mo)</label><input id="fx_insurance" type="number" step="1" value="200"></div>
+            <div><label for="fx_fuel">Fuel/Propane ($/mo)</label><input id="fx_fuel" type="number" step="1" value="250"></div>
+            <div><label for="fx_note">Loan/Trailer ($/mo)</label><input id="fx_note" type="number" step="1" value="600"></div>
+            <div><label for="fx_permits">Permits/Fees Avg ($/mo)</label><input id="fx_permits" type="number" step="1" value="100"></div>
+            <div><label for="fx_misc">Supplies/Repairs/Marketing ($/mo)</label><input id="fx_misc" type="number" step="1" value="200"></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h3>Event Types &amp; Staffing</h3>
+
+        <div class="badge">Major Festival</div>
+        <div class="grid-4 stack-gap">
+          <div><label for="fest_events">Events / year</label><input id="fest_events" type="number" step="1" value="12"></div>
+          <div><label for="fest_bowls">Bowls / event</label><input id="fest_bowls" type="number" step="1" value="350"></div>
+          <div><label for="fest_fee">Event fee (flat $)</label><input id="fest_fee" type="number" step="1" value="200"></div>
+          <div><label for="fest_ops">Per-event ops (fuel/ice/etc $)</label><input id="fest_ops" type="number" step="1" value="75"></div>
+        </div>
+        <div class="grid-4 stack-gap">
+          <div><label for="fest_staff">Staff count (service)</label><input id="fest_staff" type="number" step="1" value="3"></div>
+          <div><label for="fest_hrs">Service hours / event</label><input id="fest_hrs" type="number" step="0.5" value="8"></div>
+          <div><label for="fest_prep">Prep hours (paid)</label><input id="fest_prep" type="number" step="0.5" value="2"></div>
+          <div><label for="fest_wage">Wage ($/hr)</label><input id="fest_wage" type="number" step="0.5" value="15"></div>
+        </div>
+        <div class="grid">
+          <div><label for="fest_lead">Crew lead bonus ($)</label><input id="fest_lead" type="number" step="1" value="25"></div>
+        </div>
+
+        <hr class="sep">
+
+        <div class="badge">Community Event</div>
+        <div class="grid-4 stack-gap">
+          <div><label for="com_events">Events / year</label><input id="com_events" type="number" step="1" value="12"></div>
+          <div><label for="com_bowls">Bowls / event</label><input id="com_bowls" type="number" step="1" value="200"></div>
+          <div><label for="com_fee">Event fee (flat $)</label><input id="com_fee" type="number" step="1" value="100"></div>
+          <div><label for="com_ops">Per-event ops (fuel/ice/etc $)</label><input id="com_ops" type="number" step="1" value="50"></div>
+        </div>
+        <div class="grid-4 stack-gap">
+          <div><label for="com_staff">Staff count (service)</label><input id="com_staff" type="number" step="1" value="2"></div>
+          <div><label for="com_hrs">Service hours / event</label><input id="com_hrs" type="number" step="0.5" value="6"></div>
+          <div><label for="com_prep">Prep hours (paid)</label><input id="com_prep" type="number" step="0.5" value="1"></div>
+          <div><label for="com_wage">Wage ($/hr)</label><input id="com_wage" type="number" step="0.5" value="15"></div>
+        </div>
+        <div class="grid">
+          <div><label for="com_lead">Crew lead bonus ($)</label><input id="com_lead" type="number" step="1" value="20"></div>
+        </div>
+
+        <hr class="sep">
+
+        <div class="badge">Catering</div>
+        <div class="grid-4 stack-gap">
+          <div><label for="cat_events">Events / year</label><input id="cat_events" type="number" step="1" value="7"></div>
+          <div><label for="cat_bowls">Bowls / event</label><input id="cat_bowls" type="number" step="1" value="125"></div>
+          <div><label for="cat_fee">Event fee (flat $)</label><input id="cat_fee" type="number" step="1" value="0"></div>
+          <div><label for="cat_ops">Per-event ops (fuel/ice/etc $)</label><input id="cat_ops" type="number" step="1" value="35"></div>
+        </div>
+        <div class="grid-4 stack-gap">
+          <div><label for="cat_staff">Staff count (service)</label><input id="cat_staff" type="number" step="1" value="2"></div>
+          <div><label for="cat_hrs">Service hours / event</label><input id="cat_hrs" type="number" step="0.5" value="4"></div>
+          <div><label for="cat_prep">Prep hours (paid)</label><input id="cat_prep" type="number" step="0.5" value="1"></div>
+          <div><label for="cat_wage">Wage ($/hr)</label><input id="cat_wage" type="number" step="0.5" value="15"></div>
+        </div>
+        <div class="grid">
+          <div><label for="cat_lead">Crew lead bonus ($)</label><input id="cat_lead" type="number" step="1" value="15"></div>
+        </div>
+
+        <hr class="sep">
+
+        <div class="badge">Drinks Add-On (Simple)</div>
+        <div class="grid-4 stack-gap">
+          <div>
+            <label for="drink_share_pct">% of bowl orders that also buy a drink</label>
+            <input id="drink_share_pct" type="number" step="1" value="45" min="0" max="100">
+          </div>
+          <div>
+            <label for="drink_price">Average drink price ($)</label>
+            <input id="drink_price" type="number" step="0.05" value="5.00">
+          </div>
+          <div>
+            <label for="drink_cost">Average drink cost ($) — incl. cup/ice</label>
+            <input id="drink_cost" type="number" step="0.05" value="1.50">
+          </div>
+          <div>
+            <label for="drink_round_to">Round drinks to nearest (cups)</label>
+            <input id="drink_round_to" type="number" step="1" value="10" min="1">
+          </div>
+        </div>
+        <small class="muted">This drink model is independent of the Menu tab. It assumes one blended drink offer (e.g., Mango Lemonade/Tea) at an average price &amp; cost.</small>
+
+        <div class="button-group">
+          <button class="primary" type="button" onclick="PL.calc()">Calculate</button>
+          <button class="secondary" type="button" onclick="PL.exportCSV()">Download CSV</button>
+          <button class="secondary" type="button" onclick="window.print()">Print</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Topline KPIs</h3>
+        <div class="kpi">
+          <div class="box"><div class="label">Events / Year</div><div id="kpi_events" class="val">—</div></div>
+          <div class="box"><div class="label">Bowls / Year</div><div id="kpi_bowls" class="val">—</div></div>
+          <div class="box"><div class="label">Revenue / Year</div><div id="kpi_rev" class="val">—</div></div>
+          <div class="box"><div class="label">Net Profit / Year</div><div id="kpi_net" class="val">—</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Per-Event Economics (by Type)</h3>
+        <div class="table-wrap"><table id="perEventTbl"></table></div>
+      </section>
+
+      <section class="card">
+        <h3>Annual Projection (all events)</h3>
+        <div class="table-wrap"><table id="annualTbl"></table></div>
+      </section>
+    </div>
+
+    <div id="tab-tasks" class="tab">
+      <section class="card hero-card">
+        <h3>Weekly Time &amp; Prep Checklist</h3>
+        <p class="info">Grounded in the Rice Co. time study and prep sheets. Use this to plan your week, track progress, and jump to the key reference notes.</p>
+        <div id="timeSummary" class="time-summary">
+          <div class="muted">Loading time study…</div>
+        </div>
+        <div class="button-group">
+          <button class="secondary" type="button" id="timeResetBtn">Reset Checklist</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Hands-On Tasks</h3>
+        <div id="timeChecklist" class="time-checklist"></div>
+      </section>
+    </div>
+
+    <div id="tab-prep" class="tab">
+      <section class="card hero-card">
+        <h3>Sauce Prep Playbook</h3>
+        <p class="info">Sauce batches standardized in grams for consistency. Review bowl build recipes, yields, cost cues, and pull the ingredient lists before heading into prep.</p>
+        <div id="prepSummary" class="prep-summary muted">Loading sauces…</div>
+      </section>
+
+      <section class="card">
+        <div class="section-top">
+          <h3>1 Gallon Recipes (Gram Scales)</h3>
+          <button class="secondary small" type="button" data-print-section="prepSauceList">Print</button>
+        </div>
+        <div id="prepSauceList" class="prep-grid"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-top">
+          <h3>Signature Bowl Recipes</h3>
+          <button class="secondary small" type="button" data-print-section="prepRecipeList">Print</button>
+        </div>
+        <div id="prepRecipeList" class="prep-grid"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-top">
+          <h3>Corn Salsa Prep (scaled)</h3>
+          <button class="secondary small" type="button" data-print-section="prepSalsaList">Print</button>
+        </div>
+        <div id="prepSalsaList" class="prep-grid"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-top">
+          <h3>Meat Production</h3>
+          <button class="secondary small" type="button" data-print-section="prepMeatList">Print</button>
+        </div>
+        <div id="prepMeatList" class="prep-grid"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-top">
+          <h3>Pickling &amp; Garnish</h3>
+          <button class="secondary small" type="button" data-print-section="prepPickleList">Print</button>
+        </div>
+        <div id="prepPickleList" class="prep-grid"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="recipesModal" aria-hidden="true">
+    <div class="modal-overlay" data-close="recipesModal"></div>
+    <div class="modal-dialog recipe-manager">
+      <button class="modal-close" type="button" data-close="recipesModal" aria-label="Close recipes">&times;</button>
+      <h2>Recipes &amp; Components</h2>
+      <p class="info">Tweak bowls, sauces, and build steps here. Changes save locally and feed the planner instantly.</p>
+      <div class="recipe-manager-grid">
+        <aside class="recipe-sidebar">
+          <div class="sidebar-actions">
+            <input id="recipeSearch" type="search" placeholder="Search recipes">
+            <button class="secondary small" type="button" id="recipeAddBtn">New Recipe</button>
+          </div>
+          <div id="recipeNav" class="recipe-nav"></div>
+        </aside>
+        <div class="recipe-editor">
+          <form id="recipeForm">
+            <div class="form-grid two">
+              <div>
+                <label for="recipeIcon">Icon</label>
+                <input id="recipeIcon" type="text" maxlength="4" placeholder="e.g., 🔥">
               </div>
-            `).join('')}
-          </div>
+              <div>
+                <label for="recipeName">Recipe name</label>
+                <input id="recipeName" type="text" required placeholder="Classic BBQ Bowl">
+              </div>
+              <div>
+                <label for="recipeKey">Key</label>
+                <input id="recipeKey" type="text" disabled>
+                <small class="muted">Internal reference; auto-generated for new recipes.</small>
+              </div>
+              <div>
+                <label for="recipeProtein">Protein</label>
+                <select id="recipeProtein">
+                  <option value="">(None)</option>
+                  <option value="chicken">Chicken</option>
+                  <option value="pork">Pork</option>
+                  <option value="gyro">Gyro (beef+pork)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="checkbox-row">
+              <label><input type="checkbox" id="recipeSalsa"> Includes corn salsa</label>
+            </div>
+
+            <fieldset class="option-fieldset">
+              <legend>Sauces</legend>
+              <div id="recipeSauces" class="chip-grid"></div>
+            </fieldset>
+
+            <fieldset class="option-fieldset">
+              <legend>Veg &amp; Cold Components</legend>
+              <div id="recipeVeg" class="chip-grid"></div>
+            </fieldset>
+
+            <label for="recipeComponents">Display components (comma separated)</label>
+            <textarea id="recipeComponents" rows="2" placeholder="Cilantro-lime rice, Slaw mix, BBQ sauce"></textarea>
+
+            <div class="steps-header">
+              <h3>Build Steps</h3>
+              <button class="secondary small" type="button" id="recipeStepAdd">Add Step</button>
+            </div>
+            <div id="recipeSteps" class="steps-editor"></div>
+
+            <div class="form-actions">
+              <button class="secondary small danger" type="button" id="recipeDeleteBtn">Delete</button>
+              <button class="primary" type="submit" id="recipeSaveBtn">Save Recipe</button>
+            </div>
+          </form>
+          <div id="recipePreview" class="recipe-preview"></div>
+          <section class="sauce-recipes-block">
+            <h3>Sauce Recipes — 1 Gallon Yield</h3>
+            <div class="table-wrap">
+              <table class="table narrow">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Sauce</th>
+                    <th>Flavor Profile</th>
+                    <th>Key Ingredients (1 gal)</th>
+                    <th>Est. Cost</th>
+                    <th>Bowl Pairings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>House Green Sauce (Peruvian + Aioli Fusion)</td>
+                    <td>Bright, creamy, herby, mild heat</td>
+                    <td>Mayo (6c), Greek yogurt (2c), Cilantro (3 bunches), Jalapeños (5–6), Garlic (8–10 cloves), Lime juice (½c), White vinegar (¼c), Olive oil (½c), Cumin (2tsp), Salt (1½tsp)</td>
+                    <td>$11–12/gal</td>
+                    <td>BBQ, Caribbean, Thai, Gyro</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>BBQ Sauce (House)</td>
+                    <td>Sweet-smoky classic</td>
+                    <td>Ketchup (2qt), Brown sugar (2c), Vinegar (2c), Molasses (1c), Worcestershire (½c), Yellow mustard (¼c), Paprika, Garlic, Onion, Chili</td>
+                    <td>$12/gal</td>
+                    <td>BBQ, Buffalo, Caribbean</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Toum Garlic Sauce</td>
+                    <td>Intense, creamy garlic with lemon</td>
+                    <td>Garlic (3c), Lemon juice (1c), Oil (2qt), Salt (1Tbsp), Ice water (½c)</td>
+                    <td>$10/gal</td>
+                    <td>Gyro, Mediterranean, Thai</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Buffalo Sauce</td>
+                    <td>Tangy, buttery cayenne heat</td>
+                    <td>Frank’s RedHot (2qt), Butter (1lb), Vinegar (½c), Garlic powder, Worcestershire</td>
+                    <td>$10/gal</td>
+                    <td>Cajun/Buffalo, BBQ, Thai</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Tzatziki</td>
+                    <td>Cool, garlicky, fresh</td>
+                    <td>Greek yogurt (2qt), Cucumber (2 large, drained), Olive oil (4Tbsp), Lemon (3Tbsp), Garlic (4 cloves), Dill (3Tbsp), Salt &amp; pepper</td>
+                    <td>$14/gal</td>
+                    <td>Gyro, Mediterranean</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>Mustardy Habanero Hot Sauce (tamed)</td>
+                    <td>Tangy, bright, gentle tropical heat</td>
+                    <td>Habaneros (1lb, seeded), Garlic (1c), Scallions (1c), Carrot (½c), Cilantro (1c), Thyme (½c), Vinegar (4c), Water (4c), Yellow mustard (2c), Allspice (1tsp), Salt (2Tbsp)</td>
+                    <td>$11/gal</td>
+                    <td>BBQ, Caribbean, Thai</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>Bangkok Peanut Sauce</td>
+                    <td>Sweet, nutty, umami</td>
+                    <td>Peanut butter (6c), Milk (6c), Soy sauce (2c), Brown sugar (1½c), Rice vinegar (1c), Lime juice (1c), Oil (¾c), Garlic (½c), Ginger (¼c), Chili paste (¼c), Fish sauce (1Tbsp)</td>
+                    <td>$10/gal</td>
+                    <td>Thai, BBQ Fusion, Veggie</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td>Caribbean Jerk-Pineapple Sauce</td>
+                    <td>Smoky-sweet, fruity, spiced glaze</td>
+                    <td>Crushed pineapple (4c), Pineapple juice (2c), Brown sugar (2c), Soy sauce (1c), Vinegar (1c), Orange juice (1c), Ketchup (1c), Green onion (¾c), Thyme (½c), Garlic (½c), Habanero (2), Allspice (2Tbsp), Lime juice (¼c)</td>
+                    <td>$12/gal</td>
+                    <td>Cuban-Jamaican, BBQ, Caribbean</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="grid" id="grid${i}" style="--n:${N}" data-owner="${i}"></div>
-        <div class="result" id="res${i}">${p.mode==='play' ? 'Tap enemy grid to target' : 'Build mode'}</div>
-        <div class="ctx" id="ctx${i}"></div>
-      `;
-      volley.appendChild(card);
-
-      // target dropdown
-      const who=card.querySelector('.who');
-      who.innerHTML='';
-      state.players.forEach((pp,j)=>{ if(j===i) return; const o=el('option'); o.value=j; o.textContent=pp.name; who.appendChild(o); });
-      who.value=String((p.target===i)? ((i+1)%state.playerCount) : p.target);
-      who.onchange=e=>{ p.target=+e.target.value; p.aimIndex=null; save(); renderAims(); };
-
-      // quick stance/band taps
-      card.querySelectorAll('.tag.click').forEach(t=>{
-        t.onclick=()=>{
-          if(t.dataset.act==='stance'){
-            const idx=STANCES.findIndex(s=>s.id===p.stance);
-            p.stance=STANCES[(idx+1)%STANCES.length].id;
-          }else{
-            const bi=BANDS.indexOf(p.band);
-            p.band=BANDS[(bi+1)%BANDS.length];
-          }
-          save(); renderVolley();
-        };
-      });
-
-      // rotate & mode
-      card.querySelector('.rot').onclick=()=>{ p.rot=(p.rot+1)%4; save(); renderVolley(); };
-      card.querySelector('.mode').onclick=()=>{ p.mode=p.mode==='build'?'play':'build'; save(); renderVolley(); };
-
-      // palette selection
-      card.querySelectorAll('.tool').forEach(btn=>{
-        btn.onclick=()=>{ p.tool=btn.dataset.tool; save(); renderVolley(); };
-      });
-
-      renderGrid(i);
-    });
-
-    // Attach AIM listeners to each attacker's chosen target grid
-    attachAllAimListeners();
-    renderAims();
-  }
-
-  /* ==== Weapon family helpers ==== */
-  function installedWeaponFamilies(p){
-    const fam=new Set();
-    for(const pid in p.parts){
-      const t=p.parts[pid].type;
-      if(WEAPON_TYPES.includes(t)) fam.add(t);
-    }
-    return Array.from(fam);
-  }
-  function getWeaponFamily(p){
-    const fam = installedWeaponFamilies(p);
-    return fam.length>0 ? fam[0] : null; // only one allowed
-  }
-  function countWeaponsOfType(p, type){
-    let n=0;
-    for(const pid in p.parts){
-      const part=p.parts[pid];
-      if(part.type===type && part.hp>0) n++;
-    }
-    return n;
-  }
-
-  function renderGrid(i){
-    const p=state.players[i], gEl=document.getElementById('grid'+i); gEl.innerHTML='';
-
-    // ghost preview helper
-    const showGhostAt = (idx)=>{
-      clearGhost();
-      if(p.mode!=='build') return;
-      const tool=TOOLS.find(t=>t.id===p.tool);
-      if(!tool || tool.id==='pointer' || tool.id==='eraser') return;
-
-      const r0=(idx/N)|0, c0=idx%N;
-      const shape=rotateTimes(tool.shape, p.rot);
-      let valid=true; const ids=[];
-      for(let rr=0; rr<shape.length; rr++){
-        for(let cc=0; cc<shape[0].length; cc++){
-          if(!shape[rr][cc]) continue;
-          const r=r0+rr, c=c0+cc; if(!inBounds(r,c,N)){ valid=false; continue; }
-          const id=r*N+c; ids.push(id);
-          const dest=p.cells[id];
-          if(!dest || !dest.allowed || (dest.type && dest.partId!=null)) valid=false;
-        }
-      }
-      ids.forEach(id=>{
-        const cellEl = gEl.children[id];
-        if(cellEl){
-          cellEl.classList.add('ghostShape');
-          if(!valid) cellEl.classList.add('invalidGhost');
-        }
-      });
-    };
-    const clearGhost = ()=>{
-      Array.from(gEl.children).forEach(c=>{
-        c.classList.remove('ghostShape','invalidGhost');
-      });
-    };
-
-    p.cells.forEach((cell,idx)=>{
-      const c=el('div','cell'); c.classList.add(cell.allowed?'on':'off');
-      if(cell.type) c.classList.add(cell.type, 'module');
-      if(cell.partId!=null){
-        const part=p.parts[cell.partId];
-        if(part && part.hp<part.max) c.classList.add('damaged');
-        if(cell.emp) c.classList.add('emp');
-      }
-      const badge=el('div','badge'); badge.textContent=typeEmoji(cell.type); c.appendChild(badge);
-
-      c.addEventListener('mouseenter', ()=>{ showGhostAt(idx); });
-      c.addEventListener('mouseleave', ()=>{ clearGhost(); });
-
-      c.addEventListener('click', ()=>{
-        if(!cell.allowed) return;
-        if(p.mode==='build'){
-          const tool=TOOLS.find(t=>t.id===p.tool); if(!tool) return;
-
-          if(tool.id==='eraser'){
-            if(cell.partId!=null){
-              const pid=cell.partId;
-              p.cells.forEach(cc=>{ if(cc.partId===pid){ cc.type=null; cc.emp=false; cc.partId=null; } });
-              delete p.parts[pid];
-            }else{
-              cell.type=null; cell.emp=false; cell.partId=null;
-            }
-            renderGrid(i); save(); return;
-          }
-          if(tool.id==='pointer') return;
-
-          // enforce single core
-          if(tool.id==='core'){
-            const hasCore = Object.values(p.parts).some(pt=>pt.type==='core' && pt.hp>0);
-            if(hasCore){ flash(c,'#ef476faa'); return; }
-          }
-          // enforce one weapon family
-          if(WEAPON_TYPES.includes(tool.id)){
-            const fam = installedWeaponFamilies(p);
-            if(fam.length>0 && fam[0]!==tool.id){ flash(c,'#ef476faa'); return; }
-          }
-
-          if(placeAt(p, idx)){ clearGhost(); renderGrid(i); save(); }
-        }
-      });
-
-      gEl.appendChild(c);
-    });
-  }
-
-  const rotateTimes=(shape,n)=>{ let s=shape; for(let k=0;k<n;k++) s=rotateShape(s); return s; };
-  function baseHpFor(type){ return BASE_HP[type] || DEFAULT_HP; }
-
-  function placeAt(p, idx){
-    const tool=TOOLS.find(t=>t.id===p.tool); if(!tool) return false;
-
-    const r0=(idx/N)|0, c0=idx%N;
-    const shape = rotateTimes(tool.shape, p.rot);
-    const coords=[];
-    for(let rr=0; rr<shape.length; rr++){
-      for(let cc=0; cc<shape[0].length; cc++){
-        if(!shape[rr][cc]) continue;
-        const r=r0+rr, c=c0+cc; if(!inBounds(r,c,N)) return false;
-        const id=r*N+c; const dest=p.cells[id];
-        if(!dest.allowed || (dest.type && dest.partId!=null)) return false; // collision
-        coords.push(id);
-      }
-    }
-
-    const pid = p.nextPartId++;
-    p.parts[pid] = {type: tool.id, hp: baseHpFor(tool.id), max: baseHpFor(tool.id)};
-
-    coords.forEach(id=>{
-      const dest=p.cells[id];
-      dest.type=tool.id;
-      dest.emp=false;
-      dest.partId=pid;
-    });
-    return true;
-  }
-
-  /* ===== Line-of-Sight helpers (Top = Front) ===== */
-  function frontTargetIndex(defender, col){
-    for(let r=0; r<N; r++){
-      const id=r*N+col;
-      const cell=defender.cells[id];
-      if(!cell || !cell.allowed) continue;
-      if(cell.partId!=null) return id; // first occupied hull cell from the front
-    }
-    return null;
-  }
-  function legalTargetSet(defender){
-    const set = new Set();
-    for(let c=0;c<N;c++){
-      const idx = frontTargetIndex(defender, c);
-      if(idx!=null) set.add(idx);
-    }
-    return set;
-  }
-
-  /* ===== Targeting BEFORE roll (with LoS) ===== */
-  function attachAllAimListeners(){
-    state.players.forEach((attacker, ai)=>{
-      if(attacker.mode!=='play') return;
-      const tgt = (state.players[attacker.target] && attacker.target!==ai)? attacker.target : ((ai+1)%state.playerCount);
-      const gEl = document.getElementById('grid'+tgt);
-      if(!gEl) return;
-
-      const defP = state.players[tgt];
-      const legal = legalTargetSet(defP);
-
-      // highlight only legal targets
-      Array.from(gEl.children).forEach((cellEl,cellIdx)=>{
-        const model = defP && defP.cells ? defP.cells[cellIdx] : null;
-        if(model && legal.has(cellIdx)) cellEl.classList.add('targetable');
-        else cellEl.classList.remove('targetable');
-      });
-
-      // Remove prior to avoid stacking
-      gEl._aimHandlers = gEl._aimHandlers || {};
-      if(gEl._aimHandlers[ai]) gEl.removeEventListener('click', gEl._aimHandlers[ai]);
-
-      const handler = (ev)=>{
-        const cell = ev.target.closest('.cell');
-        if(!cell) return;
-        const cellsArr = Array.from(gEl.children);
-        const idx = cellsArr.indexOf(cell);
-        if(idx<0) return;
-
-        // snap to frontmost legal target in this column
-        const col = idx % N;
-        const snapped = frontTargetIndex(defP, col);
-        if(snapped==null){
-          // no legal target in this column
-          const resEl = document.getElementById('res'+ai);
-          if(resEl) resEl.textContent = 'No legal target in this column';
-          return;
-        }
-
-        attacker.aimIndex = snapped;
-        save();
-        renderAims();
-
-        const resEl = document.getElementById('res'+ai);
-        if(resEl) resEl.textContent = 'Aimed ' + (snapped+1);
-      };
-
-      gEl.addEventListener('click', handler);
-      gEl._aimHandlers[ai] = handler;
-    });
-  }
-
-  /* ===== Draw / stance / band ===== */
-  function drawFor(p){
-    const notes=[];
-    if(p.deck.length===0 && p.discards.length>0){ p.deck=p.discards.splice(0); shuffle(p.deck); }
-    if(p.deck.length===0) return {final:'—',notes:['Deck empty'],color:'#8b97a5'};
-
-    const tier = shipTier(p); // 'small' | 'medium' | 'large'
-
-    // Maneuver: Juke band shift with tiered success
-    if(p.stance==='JUKEUP' || p.stance==='JUKEDN'){
-      let need = 0, ok = false, roll = 20;
-      if(tier==='small'){ ok = true; need = 0; }
-      else if(tier==='medium'){ need = 8; roll = d20(); ok = (roll >= need); }
-      else { need = 12; roll = d20(); ok = (roll >= need); }
-      if(ok){
-        shiftBand(p, p.stance==='JUKEUP'? +1 : -1);
-        notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✓ → ${p.band}${tier!=='small'?` (d20 ${roll}≥${need})`:''}`);
-      }else{
-        notes.push(`${p.stance==='JUKEUP'?'Juke Far':'Juke Close'} ✗ (d20 ${roll}<${need})`);
-      }
-    }
-
-    // Build draw pool (Evade adds MISS by tier)
-    const pool=p.deck.slice();
-    if(p.stance==='EVADE'){
-      const add = (tier==='small')?3 : (tier==='medium')?2 : 1;
-      for(let k=0;k<add;k++) pool.push('MISS');
-      notes.push(`Evade: +${add} MISS this draw`);
-    }
-
-    // Draw
-    const first=pool[(Math.random()*pool.length)|0]; let result=first;
-    let i=p.deck.lastIndexOf(first); if(i>=0){ p.hand.push(p.deck.splice(i,1)[0]); }
-
-    // Disrupt: Jam (force redraw on HIT)
-    if(p.stance==='JAM' && result==='HIT'){
-      notes.push('Jam: Hit → redraw');
-      const pool2=p.deck.slice(); if(p.stance==='EVADE'){ const add = (tier==='small')?3:(tier==='medium')?2:1; for(let k=0;k<add;k++) pool2.push('MISS'); }
-      if(pool2.length){
-        const second=pool2[(Math.random()*pool2.length)|0];
-        let j=p.deck.lastIndexOf(second); if(j>=0){ p.hand.push(p.deck.splice(j,1)[0]); }
-        notes.push(`Second: ${second}`); result=second;
-      }
-    }
-
-    // Disrupt: Countermeasures (on CRIT)
-    if(p.stance==='COUNTER' && first==='CRIT'){
-      let removed=false, r=p.deck.lastIndexOf('CRIT');
-      if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('CRIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
-      if(!removed){ const c=byId(p,'CRIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
-      notes.push(removed? 'Counter: -1 CRIT (perm)':'Counter: no CRIT to remove');
-    }
-
-    if(p.stance==='SABOT'){
-      const where=(Math.random()*(p.deck.length+1))|0;
-      p.deck.splice(where,0,'MISS'); ensureKey(p,'MISS'); byId(p,'MISS').count=(+byId(p,'MISS').count||0)+1;
-      notes.push('Sabotage: +1 MISS (perm)');
-    }
-
-    if(p.stance==='SCRUB'){
-      let removed=false, r=p.deck.lastIndexOf('HIT');
-      if(r>=0){ p.deck.splice(r,1); removed=true; } else { r=p.discards.lastIndexOf('HIT'); if(r>=0){ p.discards.splice(r,1); removed=true; } }
-      if(!removed){ const c=byId(p,'HIT'); if(c && c.count>0){ c.count=Math.max(0,c.count-1); removed=true; } }
-      notes.push(removed? 'Scramble: -1 HIT (perm)':'Scramble: no HIT to remove');
-    }
-
-    // Defense: Brace with tiered downgrade
-    if(p.stance==='BRACE'){
-      if(result==='CRIT'){
-        if(tier==='small'){ result='HIT'; notes.push('Brace: CRIT → HIT'); }
-        else if(tier==='medium'){ result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
-        else { result='GLNC'; notes.push('Brace: CRIT → GLNC'); }
-      } else if(result==='GLNC' && tier==='large'){
-        result='MISS'; notes.push('Brace: GLNC → MISS (large)');
-      }
-    }
-
-    const def = byId(p,result) || {name:result, color:'#6ea8fe'};
-    return {final:result,notes,color:def.color};
-  }
-  function shiftBand(p,delta){ const i=BANDS.indexOf(p.band); p.band=BANDS[Math.min(BANDS.length-1,Math.max(0,i+delta))]; }
-
-  /* ===== Patterns & damage application ===== */
-  function neighbors8(index){
-    const r=(index/N)|0, c=index%N;
-    const out=[];
-    for(let dr=-1; dr<=1; dr++){
-      for(let dc=-1; dc<=1; dc++){
-        if(dr===0 && dc===0) continue;
-        const rr=r+dr, cc=c+dc;
-        if(inBounds(rr,cc,N)) out.push(rr*N+cc);
-      }
-    }
-    return out;
-  }
-  function nearestEdgeDirection(defender, index){
-    const r=(index/N)|0, c=index%N;
-    const allowed = i=> defender.cells[i] && defender.cells[i].allowed;
-    let up=0; for(let rr=r; rr>=0 && allowed(rr*N+c); rr--) up++;
-    let down=0; for(let rr=r; rr<N  && allowed(rr*N+c); rr++) down++;
-    let left=0; for(let cc=c; cc>=0 && allowed(r*N+cc); cc--) left++;
-    let right=0; for(let cc=c; cc<N  && allowed(r*N+cc); cc++) right++;
-    const map=[['up',up],['down',down],['left',left],['right',right]].sort((a,b)=>a[1]-b[1]);
-    return map[0][0];
-  }
-  function lineCellsFrom(defender, index){
-    const dir = nearestEdgeDirection(defender, index);
-    const r=(index/N)|0, c=index%N;
-    const step = (dr,dc)=>{
-      const cells=[index];
-      let rr=r+dr, cc=c+dc;
-      for(let k=0;k<2;k++){
-        if(!inBounds(rr,cc,N)) break;
-        const id=rr*N+cc;
-        if(!defender.cells[id] || !defender.cells[id].allowed) break;
-        cells.push(id);
-        rr+=dr; cc+=dc;
-      }
-      return cells;
-    };
-    if(dir==='up')    return step(+1, 0);
-    if(dir==='down')  return step(-1, 0);
-    if(dir==='left')  return step( 0,+1);
-    return              step( 0,-1);
-  }
-
-  function applyDamage(attacker, defender, hitIndex, result){
-    const w = getWeaponFamily(attacker);
-    if(!w) return {ok:false,msg:'No weapon installed'};
-    if(WEAPON_RANGE[w] !== attacker.band) return {ok:false,msg:`${w} out of range (${WEAPON_RANGE[w]})`};
-    if(hitIndex==null) return {ok:false,msg:'No target selected'};
-
-    const base = countWeaponsOfType(attacker, w);
-    if(base<=0) return {ok:false,msg:'All weapons destroyed'};
-
-    let delta = 0;
-    if(result==='CRIT') delta = +2;
-    else if(result==='GLNC') delta = -1;
-
-    if(result==='MISS' || result==='—'){
-      return {ok:false,msg:'Miss'};
-    }
-    if(result==='EMP'){
-      const cell=defender.cells[hitIndex]; if(cell && cell.partId){
-        const pid=cell.partId;
-        defender.cells.forEach(c=>{ if(c.partId===pid) c.emp=true; });
-        return {ok:true,msg:`EMP on part ${pid}`};
-      }
-      return {ok:false,msg:'EMP no effect'};
-    }
-
-    const dmgPrimary = Math.max(0, base + delta);
-    const dmgByPart = {};
-    const add = (idx, amount)=> {
-      if(amount<=0) return;
-      const cell = defender.cells[idx];
-      if(!cell || !cell.partId) return;
-      const pid = cell.partId;
-      dmgByPart[pid] = (dmgByPart[pid]||0) + amount;
-    };
-
-    if(w==='cannon' || w==='laser'){
-      add(hitIndex, dmgPrimary);
-    }else if(w==='missile'){
-      add(hitIndex, dmgPrimary);
-      neighbors8(hitIndex).forEach(id=> add(id, base)); // splash at base
-    }else if(w==='railgun'){
-      const cells = lineCellsFrom(defender, hitIndex);
-      cells.forEach((id,k)=> add(id, k===0?dmgPrimary:base));
-    }
-
-    for(const pid in dmgByPart){
-      const part = defender.parts[pid];
-      if(!part) continue;
-      part.hp = Math.max(0, part.hp - dmgByPart[pid]);
-    }
-    // remove destroyed parts
-    for(const pid in defender.parts){
-      const part = defender.parts[pid];
-      if(part && part.hp<=0){
-        defender.cells.forEach(c=>{ if(c.partId==pid){ c.type=null; c.emp=false; c.partId=null; } });
-        delete defender.parts[pid];
-      }
-    }
-
-    return {ok:true,msg:`${w} applied (${base}${delta? (delta>0?`+${delta}`:`${delta}`):''})`};
-  }
-
-  /* ===== Log / helpers ===== */
-  function pushLog(html){ const stamp=new Date().toLocaleTimeString(); tableLog.innerHTML=`<div class="mini" style="opacity:.6">${stamp}</div><div>${html}</div><hr style="border-color:#223042;opacity:.4"/>`+tableLog.innerHTML; }
-  function flash(cell,color){ const prev=cell.style.boxShadow; cell.style.boxShadow=`0 0 0 2px ${color} inset`; setTimeout(()=> cell.style.boxShadow=prev,350); }
-  function renderAims(){
-    // clear previous aimed marks on all grids
-    for(let gi=0; gi<state.playerCount; gi++){
-      const gEl = document.getElementById('grid'+gi);
-      if(!gEl) continue;
-      Array.from(gEl.children).forEach(c=> c.classList.remove('aimed'));
-    }
-    // paint each player's aim onto their target's grid (still valid)
-    state.players.forEach((p, ai)=>{
-      if(p.aimIndex==null || p.mode!=='play') return;
-      const tgt = (state.players[p.target] && p.target!==ai)? p.target : ((ai+1)%state.playerCount);
-      const gEl = document.getElementById('grid'+tgt);
-      if(!gEl) return;
-      const cell = gEl.children[p.aimIndex];
-      if(cell) cell.classList.add('aimed');
-    });
-  }
-
-  /* ===== Volley resolve ===== */
-  document.getElementById('resolve').onclick = ()=>{
-    // draw for all
-    state.players.forEach((p,i)=>{
-      const out = drawFor(p);
-      p.pending = out.final;
-      const rEl = document.getElementById('res'+i);
-      const cEl = document.getElementById('ctx'+i);
-      rEl.textContent = `${out.final}`;
-      rEl.style.color  = out.color;
-      if(out.notes.length){ cEl.style.display='block'; cEl.textContent=out.notes.join(' • '); } else { cEl.style.display='none'; }
-    });
-
-    // apply all (with LoS snap)
-    state.players.forEach((p,i)=>{
-      const tgt = (state.players[p.target] && p.target!==i)? p.target : ((i+1)%state.playerCount);
-      const defender = state.players[tgt];
-      const aim = p.aimIndex;
-
-      if(aim==null){ pushLog(`${p.name}: no target selected`); return; }
-
-      // snap to current frontmost occupied cell in the aimed column
-      const col = aim % N;
-      const snapped = frontTargetIndex(defender, col);
-      if(snapped==null){
-        pushLog(`${p.name} → ${defender.name}: no legal target in that column`);
-        p.pending = null;
-        return;
-      }
-
-      const out = applyDamage(p, defender, snapped, p.pending);
-      if(out.ok){
-        pushLog(`${p.name} → ${defender.name}: <b>${p.pending}</b> at ${snapped+1}`);
-      }else{
-        pushLog(`${p.name} → ${defender.name}: ${out.msg}`);
-      }
-      p.pending = null;
-    });
-
-    // refresh
-    for(let i=0;i<state.playerCount;i++) renderGrid(i);
-    renderAims();
-    save();
-  };
-
-  document.getElementById('clearTargets').onclick = ()=>{
-    state.players.forEach(p=> p.aimIndex=null);
-    // remove targetable highlight
-    for(let i=0;i<state.playerCount;i++){
-      const g = document.getElementById('grid'+i);
-      if(!g) continue;
-      Array.from(g.children).forEach(c=> c.classList.remove('targetable','aimed'));
-    }
-    renderAims();
-  };
-
-  /* ===== Init ===== */
-  function clampPlayers(){ while(state.players.length<state.playerCount) state.players.push(makePlayer(state.players.length)); while(state.players.length>state.playerCount) state.players.pop(); }
-  load(); clampPlayers();
-  renderSetup();
-  document.getElementById('start').onclick=()=>{ showBattle(); renderVolley(); save(); };
-  showSetup();
-})();
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
