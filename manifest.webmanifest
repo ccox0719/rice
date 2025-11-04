@@ -1,0 +1,22 @@
+{
+  "name": "Rice Bowl Prep & Profit Planner",
+  "short_name": "Rice Planner",
+  "description": "Plan prep batches, event profit, and annual projections for the Rice Bowl food truck.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4ede0",
+  "theme_color": "#15335b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

@@ -133,7 +133,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'smoky_bbq_crema',
     label: 'Smoky BBQ + Crema (Pork) — with Corn Salsa',
-    icon: '🔥',
+    icon: 'bi-fire',
     protein: 'pork',
     sauces: ['bbq', 'crema'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -153,7 +153,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'caribbean_jerk_chicken',
     label: 'Caribbean Jerk Bowl (Chicken) — Mustardy Habanero + Caribbean Sauce',
-    icon: '🌴',
+    icon: 'bi-tree',
     protein: 'chicken',
     sauces: ['mojo', 'crema'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -174,7 +174,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'caribbean_jerk_pork',
     label: 'Caribbean Jerk Bowl (Pork) — Mustardy Habanero + Caribbean Sauce',
-    icon: '🌴',
+    icon: 'bi-tree',
     protein: 'pork',
     sauces: ['mojo', 'crema'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -195,7 +195,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'island_satay',
     label: 'Island Satay Bowl — Jerk Chicken, Peanut + Pineapple Jam',
-    icon: '🥭',
+    icon: 'bi-cup-hot',
     protein: 'chicken',
     sauces: ['peanut', 'mojo'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -216,7 +216,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'cairo_gyro',
     label: 'Cairo Gyro Bowl — Beef/Pork + Tzatziki',
-    icon: '🇬🇷',
+    icon: 'bi-geo-alt',
     protein: 'gyro',
     sauces: ['tzatziki'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -235,7 +235,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'shawarma_street',
     label: 'Shawarma Street Bowl — Toum + Mustard',
-    icon: '🧄',
+    icon: 'bi-droplet',
     protein: 'chicken',
     sauces: ['toum', 'mojo'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -254,7 +254,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'bangkok_smoke',
     label: 'Bangkok Smoke Bowl — Peanut-Lime',
-    icon: '🥜',
+    icon: 'bi-egg-fried',
     protein: 'chicken',
     sauces: ['peanut'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb'],
@@ -273,7 +273,7 @@ const DEFAULT_RECIPES = [
   {
     key: 'cajun_buffalo',
     label: 'Cajun Buffalo Bowl — Buffalo + Crema',
-    icon: '🌶️',
+    icon: 'bi-pepper',
     protein: 'chicken',
     sauces: ['buffalo', 'crema'],
     veg: ['slaw', 'onions', 'carrot', 'cuke', 'herb', 'pcarrot', 'celery'],
@@ -401,6 +401,14 @@ const TIME_FILES = {
   seasoning: encodeURI('Rice Co - Seasoning.csv')
 };
 const TIME_STATE_KEY = 'rb_time_checks_v1';
+const DEFAULT_UNCHECKED_TIME_TASKS = new Set([
+  'Sauces::2::House Green Sauce',
+  'Sauces::3::Thai Peanut Sauce',
+  'Sauces::4::Tzatziki Sauce',
+  'Sauces::5::Toum (Garlic Sauce)',
+  'Sauces::6::Jerk / Habanero Base',
+  'Sauces::7::Pineapple-Habanero Mustard'
+]);
 
 const loadTimeState = () => {
   try {
@@ -580,6 +588,16 @@ const TimeBoard = (() => {
   let state = loadTimeState();
   let handlersBound = false;
 
+  const buildDefaultState = () => {
+    if (!tasks.length) return {};
+    return tasks.reduce((acc, task) => {
+      if (!DEFAULT_UNCHECKED_TIME_TASKS.has(task.id)) {
+        acc[task.id] = true;
+      }
+      return acc;
+    }, {});
+  };
+
   const getSummaryEl = () => $('#timeSummary');
   const getChecklistEl = () => $('#timeChecklist');
   const getReferencesEl = () => $('#timeReferenceBody');
@@ -738,14 +756,9 @@ const TimeBoard = (() => {
     const resetBtn = $('#timeResetBtn');
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
-        state = {};
+        state = buildDefaultState();
         saveTimeState(state);
-        const el = getChecklistEl();
-        if (el) {
-          el.querySelectorAll('input[data-time-task]').forEach(input => {
-            input.checked = false;
-          });
-        }
+        renderChecklist();
         renderSummary();
       });
     }
@@ -937,7 +950,8 @@ const PrepBoard = (() => {
       const tags = [];
       if (recipe.protein) tags.push(recipe.protein);
       if (recipe.salsa) tags.push('Corn salsa');
-      const titleIcon = recipe.icon ? `<span class="icon">${escapeHTML(recipe.icon)}</span>` : '';
+      const iconClass = escapeHTML(recipe.icon || 'bi-egg-fried');
+      const titleIcon = `<i class="recipe-icon bi ${iconClass}" aria-hidden="true"></i>`;
       const saucesBlock = saucesList.length ? `<div class="prep-pill-group">${saucesList.map(name => `<span class="prep-pill">${escapeHTML(name)}</span>`).join('')}</div>` : '';
       const vegBlock = vegList.length ? `<div class="prep-pill-group">${vegList.map(name => `<span class="prep-pill">${escapeHTML(name)}</span>`).join('')}</div>` : '';
       const componentsBlock = components.length ? `<div><strong class="muted">Components</strong><ul class="prep-components">${components.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul></div>` : '';
@@ -1118,8 +1132,9 @@ const renderRecipeSidebar = (filter = '') => {
     const active = r.key === activeRecipeKey ? ' active' : '';
     const proteinLabel = r.protein ? (PROTEIN_LABELS[r.protein] || r.protein) : 'No protein';
     const saucesLabel = r.sauces && r.sauces.length ? `${r.sauces.length} sauce${r.sauces.length>1?'s':''}` : 'No sauces';
+    const iconClass = escapeHTML(r.icon || 'bi-egg-fried');
     return `<button type="button" class="recipe-nav-item${active}" data-key="${r.key}">
-      <span class="recipe-nav-icon">${r.icon || '🍚'}</span>
+      <i class="recipe-nav-icon bi ${iconClass}" aria-hidden="true"></i>
       <span class="recipe-nav-info">
         <span class="recipe-nav-title">${r.label}</span>
         <span class="recipe-nav-sub">${proteinLabel} • ${saucesLabel}</span>
@@ -1267,7 +1282,7 @@ const updateRecipePreview = recipe => {
   const steps = recipe.steps || [];
   recipeEls.preview.innerHTML = `
     <div class="recipe-card">
-      <h4><span class="recipe-icon">${recipe.icon || '🍚'}</span>${recipe.label}</h4>
+      <h4><i class="recipe-icon bi ${escapeHTML(recipe.icon || 'bi-egg-fried')}" aria-hidden="true"></i>${escapeHTML(recipe.label)}</h4>
       <div class="recipe-meta">${metaBits.map(m => `<span>${m}</span>`).join('') || '<span>Standard rice bowl base</span>'}</div>
       <div class="recipe-components">${comps.map(c => `<span>${c}</span>`).join('') || '<span>No components listed</span>'}</div>
       ${steps.length ? `<div class="recipe-steps">
@@ -1342,21 +1357,21 @@ const handleRecipeDelete = () => {
     activeRecipeKey = null;
     editingRecipeKey = null;
     editingIsNew = true;
+    renderRecipeSidebar(recipeEls.search?.value || '');
+    highlightActiveRecipe();
+    handleRecipeAdd();
+    MB.syncRecipes();
+    const select = $('#menuSelect');
+    if (select) select.value = '';
+    return;
+  }
+  ensureActiveRecipe();
   renderRecipeSidebar(recipeEls.search?.value || '');
   highlightActiveRecipe();
-  handleRecipeAdd();
+  loadRecipeIntoForm(activeRecipeKey);
   MB.syncRecipes();
   const select = $('#menuSelect');
-  if (select) select.value = '';
-  return;
-}
-ensureActiveRecipe();
-renderRecipeSidebar(recipeEls.search?.value || '');
-highlightActiveRecipe();
-loadRecipeIntoForm(activeRecipeKey);
-MB.syncRecipes();
-const select = $('#menuSelect');
-if (select && activeRecipeKey) select.value = activeRecipeKey;
+  if (select && activeRecipeKey) select.value = activeRecipeKey;
 };
 
 const handleRecipeAdd = () => {
@@ -1452,14 +1467,7 @@ const toggleModal = (id, show) => {
   modal.setAttribute('aria-hidden', show ? 'false' : 'true');
 };
 
-const toggleSideNav = show => {
-  const nav = document.getElementById('sideNav');
-  const hamburger = document.getElementById('navToggle');
-  if (!nav || !hamburger) return;
-  const next = typeof show === 'boolean' ? show : !nav.classList.contains('show');
-  nav.classList.toggle('show', next);
-  hamburger.classList.toggle('active', next);
-};
+const toggleSideNav = () => {};
 
 /* ---------- tabs ---------- */
 const setActiveTab = key => {
@@ -1473,7 +1481,22 @@ const setActiveTab = key => {
 
 document.querySelectorAll('.nav-link[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
-    setActiveTab(btn.dataset.tab);
+    const tabKey = btn.dataset.tab;
+    setActiveTab(tabKey);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tabKey);
+      if (tabKey === 'plan') {
+        const planScope = document.getElementById('tab-plan');
+        const activePanel = planScope?.querySelector('.plan-panel.active')?.id || 'plan-overview';
+        url.searchParams.set('planTab', activePanel);
+      } else {
+        url.searchParams.delete('planTab');
+      }
+      history.replaceState({}, '', url);
+    } catch (_) {
+      /* ignore url update failures */
+    }
     toggleSideNav(false);
   });
 });
@@ -1715,6 +1738,11 @@ const MB = (() => {
     ].filter(Boolean);
     $('#table').innerHTML = toTable(rows);
     window._shoppingRows = rows;
+    try {
+      localStorage.setItem('rb_last_shopping_rows', JSON.stringify(rows));
+    } catch (_) {
+      // localStorage may be unavailable (private mode)
+    }
 
     const cost = {
       pricePerBowl: +$('#pricePerBowl').value,
@@ -2086,6 +2114,10 @@ const PL = (() => {
     $('#kpi_net').textContent = money(agg.afterFixed);
 
     window._csvBlocks = { perEventRows, annualRows };
+
+    if (typeof setActiveTab === 'function') {
+      setActiveTab('cost');
+    }
   };
 
   const exportCSV = () => {
@@ -2229,7 +2261,7 @@ const PL = (() => {
     const raw = localStorage.getItem(EXPORT_KEY);
     const msg = $('#importMsg');
     if (!raw) {
-      msg.textContent = 'No export found. Make a change in Menu Builder so it recalculates, then come back.';
+      msg.textContent = 'No export found. Make a change on the Prep Simplified tab so it recalculates, then come back.';
       return;
     }
     let obj = null;
@@ -2349,10 +2381,506 @@ const printPrepSection = sectionId => {
   }, 200);
 };
 
+const AfterBoard = (() => {
+  const LS_KEY = 'rb_after_recap_v1';
+
+  const getEl = id => document.getElementById(id);
+  const loadRecap = () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch (_) { /* ignore */ }
+    return null;
+  };
+
+  const saveRecap = data => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    } catch (_) { /* ignore */ }
+  };
+
+  const getPlan = () => {
+    try {
+      const raw = localStorage.getItem(EXPORT_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch (_) { /* ignore */ }
+    return null;
+  };
+
+  const getShoppingRows = () => {
+    if (Array.isArray(window._shoppingRows) && window._shoppingRows.length) return window._shoppingRows;
+    try {
+      const raw = localStorage.getItem('rb_last_shopping_rows');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch (_) { /* ignore */ }
+    return null;
+  };
+
+  const renderSummary = () => {
+    const el = getEl('afterSummary');
+    if (!el) return;
+    const plan = getPlan();
+    const recap = loadRecap();
+    if (!plan && !recap) {
+      el.innerHTML = '<div class="muted">No event data yet. Run a prep calculation and log your recap to populate this summary.</div>';
+      return;
+    }
+    const plannedBowls = plan?.bowlsTotal || 0;
+    const plannedPrice = plan?.pricePerBowl || 0;
+    const plannedRevenue = plannedBowls * plannedPrice;
+    const plannedCost = plan?.perBowlCost ? plan.perBowlCost * plannedBowls : 0;
+    const plannedProfit = plannedRevenue - plannedCost;
+
+    const recapData = recap || {};
+    const actualBowls = recapData.bowls != null ? recapData.bowls : null;
+    const actualRevenue = actualBowls != null ? actualBowls * plannedPrice : null;
+    const actualFoodCost = actualBowls != null && plan?.foodPerBowl != null ? actualBowls * plan.foodPerBowl : null;
+    const actualTips = recapData.tips != null ? recapData.tips : null;
+    const actualExpenses = recapData.expenses != null ? recapData.expenses : null;
+    const actualLaborHours = recapData.labor != null ? recapData.labor : null;
+    let netEstimate = null;
+    if (actualRevenue != null) {
+      const laborPerHour = (plannedCost && plannedBowls && plan?.foodPerBowl != null)
+        ? Math.max(0, (plan.perBowlCost - plan.foodPerBowl))
+        : 0;
+      const laborCost = actualLaborHours != null ? laborPerHour * actualLaborHours : 0;
+      const foodCost = actualFoodCost != null ? actualFoodCost : 0;
+      netEstimate = actualRevenue - foodCost - (actualExpenses || 0) - laborCost + (actualTips || 0);
+    }
+
+    const rows = [
+      ['Metric', 'Planned', 'Actual'],
+      ['Bowls', plannedBowls ? fmt(plannedBowls) : '—', actualBowls != null ? fmt(actualBowls) : '—'],
+      ['Revenue', plannedRevenue ? money(plannedRevenue) : '—', actualRevenue != null ? money(actualRevenue) : '—'],
+      ['Food cost', plannedCost ? money(plannedCost) : '—', actualFoodCost != null ? money(actualFoodCost) : '—'],
+      ['Tips', '—', actualTips != null ? money(actualTips) : '—'],
+      ['Extra expenses', '—', actualExpenses != null ? money(actualExpenses) : '—'],
+      ['Net (est)', plannedProfit ? money(plannedProfit) : '—', netEstimate != null ? money(netEstimate) : '—']
+    ];
+    const notes = recapData.notes ? `<div class="after-notes"><strong>Notes:</strong> ${escapeHTML(recapData.notes)}</div>` : '';
+    el.innerHTML = toTable(rows) + notes;
+  };
+
+  const renderRestock = () => {
+    const container = getEl('afterRestockList');
+    if (!container) return;
+    const rows = getShoppingRows();
+    if (!rows || !rows.length) {
+      container.innerHTML = '<div class="muted">No shopping data yet. Run the Prep Simplified calculator to generate a restock list.</div>';
+      return;
+    }
+    container.innerHTML = toTable(rows);
+  };
+
+  const populateForm = () => {
+    const form = getEl('afterActualForm');
+    if (!form) return;
+    const recap = loadRecap();
+    if (!recap) return;
+    form.bowls.value = recap.bowls ?? '';
+    form.hours.value = recap.hours ?? '';
+    form.tips.value = recap.tips ?? '';
+    form.labor.value = recap.labor ?? '';
+    form.expenses.value = recap.expenses ?? '';
+    form.notes.value = recap.notes ?? '';
+    const status = getEl('afterSaveStatus');
+    if (status) status.textContent = 'Saved';
+  };
+
+  const bindForm = () => {
+    const form = getEl('afterActualForm');
+    if (!form) return;
+    form.addEventListener('submit', evt => {
+      evt.preventDefault();
+      const recap = {
+        bowls: form.bowls.value ? Number(form.bowls.value) : null,
+        hours: form.hours.value ? Number(form.hours.value) : null,
+        tips: form.tips.value ? Number(form.tips.value) : null,
+        labor: form.labor.value ? Number(form.labor.value) : null,
+        expenses: form.expenses.value ? Number(form.expenses.value) : null,
+        notes: form.notes.value ? form.notes.value.trim() : ''
+      };
+      saveRecap(recap);
+      const status = getEl('afterSaveStatus');
+      if (status) status.textContent = 'Saved';
+      renderSummary();
+    });
+  };
+
+  const downloadReport = () => {
+    const plan = getPlan() || {};
+    const recap = loadRecap() || {};
+    const table = toTable([
+      ['Metric', 'Value'],
+      ['Bowls planned', plan.bowlsTotal ?? '—'],
+      ['Bowls sold', recap.bowls ?? '—'],
+      ['Revenue planned', plan.bowlsTotal ? money((plan.pricePerBowl || 0) * plan.bowlsTotal) : '—'],
+      ['Tips collected', recap.tips != null ? money(recap.tips) : '—'],
+      ['Extra expenses', recap.expenses != null ? money(recap.expenses) : '—'],
+      ['Notes', recap.notes || '—']
+    ]);
+    const doc = window.open('', '_blank', 'noopener,noreferrer');
+    if (!doc) return;
+    const stylesheet = document.querySelector('link[rel="stylesheet"]')?.getAttribute('href') || 'styles.css';
+    doc.document.write(`<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>After Event Recap</title>
+        <link rel="stylesheet" href="${stylesheet}">
+        <style>
+          body{background:#fff;color:#000;padding:20px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;}
+          table{width:100%;border-collapse:collapse;margin-top:16px;}
+          th,td{border:1px solid #ccc;padding:8px;text-align:left;}
+          th{background:#f4f4f4;}
+        </style>
+      </head>
+      <body>
+        <h1>After Event Recap</h1>
+        ${table}
+      </body>
+      </html>`);
+    doc.document.close();
+    doc.focus();
+    setTimeout(() => doc.print(), 150);
+  };
+
+  const exportCSV = () => {
+    const plan = getPlan() || {};
+    const recap = loadRecap() || {};
+    const rows = [
+      ['Field', 'Value'],
+      ['Bowls planned', plan.bowlsTotal ?? ''],
+      ['Price per bowl', plan.pricePerBowl ?? ''],
+      ['Food cost per bowl', plan.foodPerBowl ?? ''],
+      ['Bowls sold', recap.bowls ?? ''],
+      ['Service hours', recap.hours ?? ''],
+      ['Labor hours', recap.labor ?? ''],
+      ['Tips', recap.tips ?? ''],
+      ['Extra expenses', recap.expenses ?? ''],
+      ['Notes', recap.notes ?? '']
+    ];
+    const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'after_event_recap.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+    const msg = getEl('afterReportMsg');
+    if (msg) msg.textContent = 'CSV downloaded.';
+  };
+
+  const init = () => {
+    if (!getEl('afterSummary')) return;
+    renderSummary();
+    renderRestock();
+    populateForm();
+    bindForm();
+  };
+
+  return {
+    init,
+    refresh: renderSummary,
+    refreshRestock: renderRestock,
+    downloadReport,
+    exportCSV
+  };
+})();
+
+window.AfterBoard = AfterBoard;
+
+const BusinessPlan = (() => {
+  let initialized = false;
+
+  const getScope = () => document.getElementById('tab-plan');
+  const getButtons = () => getScope()?.querySelectorAll('[data-plan-tab]');
+  const getPanels = () => getScope()?.querySelectorAll('.plan-panel');
+
+  const updateUrl = id => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'plan');
+      url.searchParams.set('planTab', id);
+      history.replaceState({}, '', url);
+    } catch (_) {
+      /* ignore url update failures */
+    }
+  };
+
+  const showPanel = id => {
+    const scope = getScope();
+    if (!scope) return;
+    const target = scope.querySelector(`#${id}`);
+    if (!target) return;
+    getPanels()?.forEach(panel => {
+      panel.classList.toggle('active', panel === target);
+    });
+    getButtons()?.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.planTab === id);
+    });
+    updateUrl(id);
+    if (typeof setActiveTab === 'function') {
+      setActiveTab('plan');
+    }
+  };
+
+  const bindTabs = () => {
+    getButtons()?.forEach(btn => {
+      btn.addEventListener('click', () => {
+        showPanel(btn.dataset.planTab);
+      });
+    });
+  };
+
+  const bindCopy = () => {
+    const btn = document.getElementById('plan-copyLink');
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.addEventListener('click', () => {
+      const link = window.location.href;
+      const onSuccess = () => {
+        btn.innerHTML = "<i class='bi bi-check2' aria-hidden='true'></i> Copied!";
+        setTimeout(() => {
+          btn.innerHTML = original;
+        }, 1200);
+      };
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(link).then(onSuccess).catch(() => {
+          window.prompt('Copy link to plan', link);
+          onSuccess();
+        });
+      } else {
+        window.prompt('Copy link to plan', link);
+        onSuccess();
+      }
+    });
+  };
+
+  const bindPrint = () => {
+    const scope = getScope();
+    if (!scope) return;
+    const printBtn = scope.querySelector('[data-plan-print]');
+    if (printBtn) printBtn.addEventListener('click', () => window.print());
+  };
+
+  const buildOnePagerHtml = () => {
+    const stylesheet = `
+      body{font-family:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;background:#fff;color:#101728;margin:0;padding:32px;line-height:1.55;}
+      h1{margin:0;font-size:26px;letter-spacing:0.02em;}
+      h2{margin:28px 0 12px;font-size:18px;letter-spacing:0.04em;text-transform:uppercase;color:#1f3a5f;}
+      .meta{color:#5b6b80;font-size:14px;margin:6px 0 24px;}
+      .grid{display:grid;gap:18px;}
+      .grid.two{grid-template-columns:1fr;}
+      @media(min-width:900px){.grid.two{grid-template-columns:repeat(2,minmax(0,1fr));}}
+      table{width:100%;border-collapse:collapse;font-size:14px;}
+      th,td{padding:8px 10px;border:1px solid #d9e1f0;}
+      th{background:#f1f4fb;color:#1c355c;text-align:left;font-weight:600;}
+      td b{color:#1c355c;}
+      ul{margin:0;padding-left:18px;}
+      .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0;}
+      .kpi{border:1px solid #d9e1f0;border-radius:12px;padding:12px;background:#f8faff;}
+      .kpi span{display:block;}
+      .kpi .label{font-size:12px;color:#5b6b80;letter-spacing:0.06em;text-transform:uppercase;}
+      .kpi .value{font-size:18px;font-weight:700;margin-top:6px;}
+      .note{font-size:13px;color:#5b6b80;margin-top:8px;}
+      .muted{color:#5b6b80;font-size:13px;}
+      .list-inline{list-style:none;padding:0;margin:0;display:grid;gap:6px;}
+      .list-inline li{padding-left:0;}
+      .tight td{font-size:13px;}
+      @media print{body{padding:18px;}}
+    `;
+    return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>Food Truck + Nonprofit — One-Sheet Plan</title>
+        <style>${stylesheet}</style>
+      </head>
+      <body>
+        <h1>Food Truck + Nonprofit — One-Sheet Plan</h1>
+        <div class="meta">Household net ≈ $100k • Truck net target $30–35k • Launch fund $50k • Mission: every bowl supports military-connected youth</div>
+
+        <section>
+          <h2>TL;DR</h2>
+          <div class="kpi-row">
+            <div class="kpi"><span class="label">Household Net (Year-1)</span><span class="value">≈ $100,000</span></div>
+            <div class="kpi"><span class="label">Truck Net Target</span><span class="value">$30–35k</span></div>
+            <div class="kpi"><span class="label">Launch Capital Ready</span><span class="value">$50k trailer fund</span></div>
+            <div class="kpi"><span class="label">Mission Statement</span><span class="value">Every bowl → youth programs</span></div>
+          </div>
+          <p class="muted">Base plan keeps W-2 income while the truck ramps; contingency allows a full pivot if a shutdown impacts pay.</p>
+        </section>
+
+        <section>
+          <h2>3-Year Roadmap</h2>
+          <table>
+            <tr><th>Year</th><th>Focus</th><th>Milestones</th></tr>
+            <tr><td><b>1</b></td><td>Foundation &amp; Proof</td><td>Menu lock • 8–12 paid pop-ups (≥$1.5–2k/day) • Prime cost ≤60% • LLC, permits, commissary • Brand kit/site • Fund $50k trailer</td></tr>
+            <tr><td><b>2</b></td><td>Launch &amp; Ops</td><td>80–120 service days • Net ~$30–35k • SOPs/vendor list • Corporate lunches &amp; Guard events • Wrap/signage/uniforms</td></tr>
+            <tr><td><b>3</b></td><td>Optimize &amp; Grow</td><td>Net ~$40–50k • Add catering • Batch sauces/SKU simplification • Seasonal specials • Annual impact report</td></tr>
+          </table>
+        </section>
+
+        <section>
+          <h2>Decision Comparison</h2>
+          <table class="tight">
+            <tr><th>Category</th><th>Stay in Job (Primary Plan)</th><th>Launch Truck + Nonprofit (Contingency)</th></tr>
+            <tr><td>Income Stability</td><td>✅ W-2 + benefits</td><td>Seasonal &amp; variable</td></tr>
+            <tr><td>Annual Household Net</td><td>$97k–$105k (W-2 + part-time truck)</td><td>$100k–$110k (W-2 + full-time truck)</td></tr>
+            <tr><td>Funding Method</td><td colspan="2">Savings and/or SBA/bank equipment loan (~$50k) per LPL guidance; hybrid acceptable.</td></tr>
+            <tr><td>Seasonal Time Demand</td><td>1 weekend/month + 1–2 intensive summer weeks</td><td>2–3 service days/week + 1–2 prep/admin days</td></tr>
+            <tr><td>Contingency Trigger</td><td>—</td><td>Government shutdown threatens income → full-time pivot in 30–45 days</td></tr>
+            <tr><td>Mission Impact</td><td>Indirect</td><td>Direct: every bowl funds youth programs</td></tr>
+            <tr><td>Growth Potential</td><td>Modest raises</td><td>High: catering, second unit, CPG</td></tr>
+            <tr><td>Asset / Exit Value</td><td>None</td><td>Truck + brand + goodwill</td></tr>
+          </table>
+        </section>
+
+        <section>
+          <h2>Financial Snapshot</h2>
+          <div class="grid two">
+            <div>
+              <table>
+                <tr><td>W-2 income (net)</td><td><b>$64,800 / yr ($5,400/mo)</b></td></tr>
+                <tr><td>Truck Year-1 Net (target)</td><td><b>$30,000 – $35,000</b></td></tr>
+                <tr><td>Total household net</td><td><b>≈ $100,000</b></td></tr>
+                <tr><td>Lean spend (60% shift)</td><td>$54,000 – $60,000</td></tr>
+                <tr><td>Health + SE tax + reinvest</td><td>$18,000 – $20,000</td></tr>
+                <tr><td>Likely surplus (Year-1)</td><td><b>≈ $20,000+</b></td></tr>
+              </table>
+              <p class="note">Reserve stack: launch capital $50k • household reserve $25–30k • working capital $8k • seasonal contingency $12k.</p>
+            </div>
+            <div>
+              <table>
+                <tr><th>Option</th><th>Source</th><th>Amount</th><th>Notes</th></tr>
+                <tr><td><b>Option A — Savings Draw</b></td><td>LPL-managed taxable/cash</td><td>$50,000</td><td>No interest; reduces compounding base slightly.</td></tr>
+                <tr><td><b>Option B — Equipment Loan</b></td><td>SBA/Bank (collateral: trailer)</td><td>$50,000</td><td>Preserves investments; deductible interest; monthly payment.</td></tr>
+                <tr><td><b>Hybrid</b></td><td>$25k savings + $25k loan</td><td>$50,000</td><td>Balanced liquidity; keeps ≥$25k household reserve.</td></tr>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>City Serve Partnership Blueprint</h2>
+          <div class="grid two">
+            <div>
+              <ul>
+                <li><b>Purpose:</b> Freedom Roots operates under City Serve so dollars flow to military-connected youth instantly.</li>
+                <li><b>Shared heartbeat:</b> Every bowl funds camp tuition, resilience workshops, and family support experiences.</li>
+                <li><b>Programs powered:</b> Lemonade Boss kits, Bowl Builders nights, mini-camps, micro-grants, Purple Star support.</li>
+              </ul>
+            </div>
+            <div>
+              <ul>
+                <li><b>Structure:</b> City Serve holds funds in a dedicated sub-account; Guard-connected advisors craft programming.</li>
+                <li><b>Reporting:</b> Quarterly packets: bowls sold → dollars forwarded → youth served; annual narrative recap.</li>
+                <li><b>Pitch ask:</b> Establish Freedom Roots fund, co-create impact language, greenlight first 20 camp scholarships.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>12-Month Action Plan</h2>
+          <table>
+            <tr><th>Quarter</th><th>Key Actions</th></tr>
+            <tr><td><b>Q4 2025</b></td><td>Lock menu; 4–6 paid pop-ups; secure commissary; finalize trailer; confirm funding path with LPL.</td></tr>
+            <tr><td><b>Q1 2026</b></td><td>Purchase trailer; permits &amp; insurance; soft-launch weekends; contingency readiness plan (shutdown pivot).</td></tr>
+            <tr><td><b>Q2 2026</b></td><td>Full season start; aim $1.5–2k/day gross; keep prime cost ≤ 60%.</td></tr>
+            <tr><td><b>Q3 2026</b></td><td>Add catering; publish mid-season wins; donor QR live on truck.</td></tr>
+            <tr><td><b>Q4 2026</b></td><td>Impact mini-report; set 2027 pace; lock reinvestment strategy for taxes.</td></tr>
+          </table>
+        </section>
+
+        <script>
+          window.addEventListener('load', () => {
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 200);
+          });
+        </script>
+      </body>
+      </html>`;
+  };
+
+  const openOnePager = () => {
+    const html = buildOnePagerHtml();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (!win) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    const cleanup = () => URL.revokeObjectURL(url);
+    win.addEventListener('load', cleanup, { once: true });
+    win.focus();
+  };
+
+  const bindOnePager = () => {
+    const scope = getScope();
+    if (!scope) return;
+    const btn = scope.querySelector('[data-plan-onepager]');
+    if (btn) btn.addEventListener('click', openOnePager);
+  };
+
+  const applyInitialPanel = () => {
+    const scope = getScope();
+    if (!scope) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const requestedId = params.get('planTab');
+      if (requestedId && scope.querySelector(`#${requestedId}`)) {
+        showPanel(requestedId);
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  };
+
+  const init = () => {
+    if (initialized) return;
+    const scope = getScope();
+    if (!scope) return;
+    initialized = true;
+    bindTabs();
+    bindCopy();
+    bindPrint();
+    bindOnePager();
+    applyInitialPanel();
+  };
+
+  return { init, showPanel };
+})();
+
+window.BusinessPlan = BusinessPlan;
+
 /* ---------- init ---------- */
 MB.init();
 TimeBoard.init();
 PrepBoard.init();
+AfterBoard.init();
+BusinessPlan.init();
+const initialTabParam = (() => {
+  try {
+    return new URLSearchParams(window.location.search).get('tab');
+  } catch (_) {
+    return null;
+  }
+})();
+if (initialTabParam && document.querySelector(`.nav-link[data-tab="${initialTabParam}"]`)) {
+  setActiveTab(initialTabParam);
+}
 PL.refreshImport();
 PL.calc();
 loadDefaultsFromCSV().then(applied => {
@@ -2378,16 +2906,20 @@ if (recipeBtn) recipeBtn.addEventListener('click', () => {
   toggleModal('recipesModal', true);
   toggleSideNav(false);
 });
+
 document.querySelectorAll('[data-close="recipesModal"]').forEach(el => {
   el.addEventListener('click', () => toggleModal('recipesModal', false));
 });
+document.querySelectorAll('[data-close="prepSettingsModal"]').forEach(el => {
+  el.addEventListener('click', () => toggleModal('prepSettingsModal', false));
+});
 document.addEventListener('keydown', evt => {
   if (evt.key === 'Escape') toggleModal('recipesModal', false);
+  if (evt.key === 'Escape') toggleModal('prepSettingsModal', false);
   if (evt.key === 'Escape') toggleSideNav(false);
 });
 
-const navToggleBtn = document.getElementById('navToggle');
-if (navToggleBtn) navToggleBtn.addEventListener('click', () => toggleSideNav());
+toggleSideNav(true);
 
 const recipeModalLink = document.getElementById('recipeModalLink');
 if (recipeModalLink) recipeModalLink.addEventListener('click', () => {

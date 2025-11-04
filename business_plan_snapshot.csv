@@ -1,0 +1,56 @@
+Category,Item,Value,Notes
+Pricing & Variable Costs,Menu price per bowl,$12.00,Target retail price
+Pricing & Variable Costs,Food cost per bowl,$2.11,Based on ingredient defaults
+Pricing & Variable Costs,Packaging per bowl,$0.60,"Containers, lids, utensils"
+Pricing & Variable Costs,Seasoning & garnish per bowl,$0.03,Inclusive of rubs & herbs
+Pricing & Variable Costs,Variable cost per bowl,$2.74,Food + packaging + seasoning
+Pricing & Variable Costs,Contribution margin per bowl,$9.26,"Before labor, fees, and fixed costs"
+Drinks Attachment,Guests buying drinks,45%,Rounded to nearest 10 drinks per event
+Drinks Attachment,Average drink revenue,$3.00,Retail menu price
+Drinks Attachment,Average drink cost,$0.25,"Syrups, cups, CO2"
+Fixed Overhead,Monthly fixed costs,$625.00,"Insurance, fuel, permits, supplies"
+Fixed Overhead,Active months per year,8,
+Fixed Overhead,Annual fixed costs,"$5,000.00",Monthly overhead * active months
+Fixed Overhead,Fixed cost allocated per event,$161.29,Annual fixed / 31 events
+Festival Event (per occurrence),Events scheduled,12,Per season
+Festival Event (per occurrence),Bowls served,350,Rounded plan target
+Festival Event (per occurrence),Drinks sold (calc),160,Auto-rounded to nearest 10
+Festival Event (per occurrence),Revenue (incl. drinks),"$4,680.00",Net of discounts
+Festival Event (per occurrence),COGS (food + drinks),$999.00,Variable spend per event
+Festival Event (per occurrence),Labor per event,$475.00,Service + prep wages + lead
+Festival Event (per occurrence),Event fees & ops,$275.00,"Booth fees, fuel, ice, misc"
+Festival Event (per occurrence),Operating profit before fixed,"$2,931.00",Contribution before overhead
+Festival Event (per occurrence),Net profit after fixed allocation,"$2,769.71",Subtracts $161.29 overhead share
+Community Event (per occurrence),Events scheduled,12,Per season
+Community Event (per occurrence),Bowls served,200,Rounded plan target
+Community Event (per occurrence),Drinks sold (calc),90,Auto-rounded to nearest 10
+Community Event (per occurrence),Revenue (incl. drinks),"$2,670.00",Net of discounts
+Community Event (per occurrence),COGS (food + drinks),$570.50,Variable spend per event
+Community Event (per occurrence),Labor per event,$230.00,Service + prep wages + lead
+Community Event (per occurrence),Event fees & ops,$150.00,"Booth fees, fuel, ice, misc"
+Community Event (per occurrence),Operating profit before fixed,"$1,719.50",Contribution before overhead
+Community Event (per occurrence),Net profit after fixed allocation,"$1,558.21",Subtracts $161.29 overhead share
+Catering Event (per occurrence),Events scheduled,7,Per season
+Catering Event (per occurrence),Bowls served,125,Rounded plan target
+Catering Event (per occurrence),Drinks sold (calc),60,Auto-rounded to nearest 10
+Catering Event (per occurrence),Revenue (incl. drinks),"$1,680.00",Net of discounts
+Catering Event (per occurrence),COGS (food + drinks),$357.50,Variable spend per event
+Catering Event (per occurrence),Labor per event,$165.00,Service + prep wages + lead
+Catering Event (per occurrence),Event fees & ops,$35.00,"Booth fees, fuel, ice, misc"
+Catering Event (per occurrence),Operating profit before fixed,"$1,122.50",Contribution before overhead
+Catering Event (per occurrence),Net profit after fixed allocation,$961.21,Subtracts $161.29 overhead share
+Annual Totals,Events per year,31,Festival (12) + Community (12) + Catering (7)
+Annual Totals,Bowls sold,7475,Across all event types
+Annual Totals,Drinks sold (calc),3420,Based on 45% attachment
+Annual Totals,Revenue — Bowls,"$89,700.00",Core entree sales
+Annual Totals,Revenue — Drinks,"$10,260.00",Ancillary beverage sales
+Annual Totals,Revenue — Total,"$99,960.00",
+Annual Totals,COGS — Bowls,"$20,481.50",Food + packaging + seasoning
+Annual Totals,COGS — Drinks,$855.00,
+Annual Totals,COGS — Total,"$21,336.50",
+Annual Totals,Labor spend,"$9,615.00",Service + prep wages + bonuses
+Annual Totals,Event fees & ops,"$5,345.00","Booth, permits, ops per event"
+Annual Totals,Gross profit,"$78,623.50",Revenue minus COGS
+Annual Totals,Operating profit before fixed,"$63,663.50",Contribution before annual overhead
+Annual Totals,Annual fixed costs,"$5,000.00",
+Annual Totals,Net profit after fixed,"$58,663.50",Projected operating surplus
