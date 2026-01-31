@@ -12,10 +12,13 @@
   --border:#233244;
   --text:#f3f4f6;
   --muted:#9aa4b2;
-  --accent:#2563eb;
-  --danger:#ef4444;
+
+  --green:#00563F;
+  --red:#C44004;
+
   --btn:#172334;
   --btn2:#1b2a3e;
+  --danger:#C44004;
 }
 
 *{box-sizing:border-box}
@@ -32,8 +35,13 @@ header{
   text-align:center;
   font-weight:900;
   font-size:1.2rem;
-  letter-spacing:.5px;
+  letter-spacing:.6px;
   border-bottom:1px solid var(--border);
+}
+
+header .icon{
+  font-size:1.25rem;
+  margin-right:6px;
 }
 
 main{
@@ -51,15 +59,15 @@ main{
 
 .topbar button{
   border:none;
-  border-radius:12px;
-  padding:12px 14px;
+  border-radius:14px;
+  padding:12px 16px;
   font-weight:900;
-  background:var(--btn);
+  background:var(--green);
   color:var(--text);
 }
 
-.topbar .primary{
-  background:var(--accent);
+.topbar .rules{
+  background:var(--btn);
 }
 
 .round{
@@ -130,8 +138,11 @@ main{
   color:var(--text);
 }
 
-.controls .end{background:var(--accent)}
+.controls .end{
+  background:var(--green);
+}
 
+/* Modals */
 .modal{
   position:fixed;
   inset:0;
@@ -188,7 +199,7 @@ main{
   margin-bottom:8px;
 }
 
-.modalbox .primary{background:var(--accent)}
+.modalbox .primary{background:var(--green)}
 .modalbox .danger{background:var(--danger)}
 
 .color-grid{
@@ -214,13 +225,16 @@ main{
 
 <body>
 
-<header>HAND & FOOT</header>
+<header>
+  <span class="icon">🐿️</span>HAND & FOOT
+</header>
 
 <main>
 
 <div class="topbar">
-  <button class="primary" onclick="addTeam()">+ Team</button>
+  <button onclick="addTeam()">+ Team</button>
   <div class="round" id="roundLabel"></div>
+  <button class="rules" onclick="openRules()">Rules</button>
 </div>
 
 <div class="list" id="teams"></div>
@@ -231,6 +245,19 @@ main{
 </div>
 
 </main>
+
+<!-- Rules Modal -->
+<div class="modal" id="rulesModal">
+  <div class="modalbox">
+    <h3>Book Values</h3>
+    <div class="hint">House rules apply immediately</div>
+    <input id="cleanInput" type="number" placeholder="Clean Book">
+    <input id="dirtyInput" type="number" placeholder="Dirty Book">
+    <input id="sevenInput" type="number" placeholder="Clean 7s">
+    <button class="primary" onclick="saveRules()">Save</button>
+    <button onclick="closeModals()">Close</button>
+  </div>
+</div>
 
 <!-- Team Modal -->
 <div class="modal" id="teamModal">
@@ -250,9 +277,9 @@ main{
   <div class="modalbox">
     <h3>Books</h3>
     <div class="hint" id="booksHint"></div>
-    <button class="primary" onclick="addBook('clean')">Clean Book</button>
-    <button onclick="addBook('dirty')">Dirty Book</button>
-    <button onclick="addBook('seven')">Clean 7s</button>
+    <button class="primary" id="cleanBtn" onclick="addBook('clean')"></button>
+    <button id="dirtyBtn" onclick="addBook('dirty')"></button>
+    <button id="sevenBtn" onclick="addBook('seven')"></button>
     <button onclick="closeModals()">Cancel</button>
   </div>
 </div>
@@ -270,23 +297,17 @@ main{
 </div>
 
 <script>
-const KEY="hf_minimal";
+const KEY="hf_final";
 const MAX_ROUNDS=4;
 
-const TEAM_COLORS=[
-  "#7FB03F",
-  "#FAC55A",
-  "#F37433",
-  "#C44004",
-  "#00563F"
-];
+const TEAM_COLORS=["#7FB03F","#FAC55A","#F37433","#C44004","#00563F"];
 
 let state=JSON.parse(localStorage.getItem(KEY))||{
   round:1,
   rules:{clean:500,dirty:300,seven:1500},
   teams:[
-    {name:"Team 1",total:0,round:0,color:"#00563F"},
-    {name:"Team 2",total:0,round:0,color:"#7FB03F"}
+    {name:"Team 1",total:0,round:0,color:"#C44004"},
+    {name:"Team 2",total:0,round:0,color:"#00563F"}
   ],
   active:null
 };
@@ -316,15 +337,25 @@ function addTeam(){
   save();render();
 }
 
-function resetRound(){
-  state.teams.forEach(t=>t.round=0);
+function resetRound(){state.teams.forEach(t=>t.round=0);save();render()}
+function endRound(){
+  state.teams.forEach(t=>{t.total+=t.round;t.round=0});
+  if(state.round<MAX_ROUNDS)state.round++;
   save();render();
 }
 
-function endRound(){
-  state.teams.forEach(t=>{t.total+=t.round;t.round=0});
-  if(state.round<MAX_ROUNDS){state.round++}
-  save();render();
+/* Rules */
+function openRules(){
+  cleanInput.value=state.rules.clean;
+  dirtyInput.value=state.rules.dirty;
+  sevenInput.value=state.rules.seven;
+  rulesModal.style.display="flex";
+}
+function saveRules(){
+  state.rules.clean=+cleanInput.value||0;
+  state.rules.dirty=+dirtyInput.value||0;
+  state.rules.seven=+sevenInput.value||0;
+  save();closeModals();
 }
 
 /* Team modal */
@@ -335,18 +366,15 @@ function openTeam(i){
   renderColorGrid();
   teamModal.style.display="flex";
 }
-
 function saveTeam(){
   state.teams[state.active].name=teamNameInput.value.trim()||"Team";
   save();closeModals();render();
 }
-
 function deleteTeam(){
   if(state.teams.length<=1)return;
   state.teams.splice(state.active,1);
   save();closeModals();render();
 }
-
 function renderColorGrid(){
   colorGrid.innerHTML="";
   TEAM_COLORS.forEach(c=>{
@@ -362,6 +390,9 @@ function renderColorGrid(){
 function openBooks(i){
   state.active=i;
   booksHint.textContent=state.teams[i].name;
+  cleanBtn.textContent=`Clean +${state.rules.clean}`;
+  dirtyBtn.textContent=`Dirty +${state.rules.dirty}`;
+  sevenBtn.textContent=`Clean 7s +${state.rules.seven}`;
   booksModal.style.display="flex";
 }
 function addBook(type){
@@ -384,6 +415,7 @@ function applyCards(){
 }
 
 function closeModals(){
+  rulesModal.style.display="none";
   teamModal.style.display="none";
   booksModal.style.display="none";
   cardsModal.style.display="none";
