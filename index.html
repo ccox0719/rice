@@ -1,831 +1,396 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#15335b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <title>Rice Bowl — Planner</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand & Foot</title>
+
+<style>
+:root{
+  --bg:#0b0f14;
+  --panel:#0f1620;
+  --border:#233244;
+  --text:#f3f4f6;
+  --muted:#9aa4b2;
+  --accent:#2563eb;
+  --danger:#ef4444;
+  --btn:#172334;
+  --btn2:#1b2a3e;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+header{
+  padding:14px;
+  text-align:center;
+  font-weight:900;
+  font-size:1.2rem;
+  letter-spacing:.5px;
+  border-bottom:1px solid var(--border);
+}
+
+main{
+  max-width:560px;
+  margin:0 auto;
+  padding:12px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.topbar button{
+  border:none;
+  border-radius:12px;
+  padding:12px 14px;
+  font-weight:900;
+  background:var(--btn);
+  color:var(--text);
+}
+
+.topbar .primary{
+  background:var(--accent);
+}
+
+.round{
+  flex:1;
+  text-align:center;
+  font-weight:900;
+  color:var(--muted);
+}
+
+.list{
+  border:1px solid var(--border);
+  border-radius:18px;
+  overflow:hidden;
+}
+
+.team{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  align-items:center;
+  gap:14px;
+  padding:22px 16px;
+  min-height:96px;
+  border-bottom:1px solid rgba(0,0,0,.15);
+}
+
+.team:last-child{border-bottom:none}
+
+.name{
+  font-weight:1000;
+  font-size:1.1rem;
+  cursor:pointer;
+}
+
+.score{
+  font-weight:1000;
+  font-size:2.2rem;
+  padding:10px 14px;
+  border-radius:14px;
+  background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.15);
+  min-width:110px;
+  text-align:right;
+  cursor:pointer;
+}
+
+.books{
+  border:none;
+  border-radius:14px;
+  padding:14px 18px;
+  font-weight:1000;
+  background:rgba(0,0,0,.35);
+  color:var(--text);
+}
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+
+.controls button{
+  border:none;
+  border-radius:14px;
+  padding:14px;
+  font-weight:1000;
+  background:var(--btn);
+  color:var(--text);
+}
+
+.controls .end{background:var(--accent)}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+
+.modalbox{
+  width:100%;
+  max-width:380px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+}
+
+.modalbox h3{
+  margin:0 0 12px;
+  text-align:center;
+  font-weight:1000;
+}
+
+.modalbox .hint{
+  text-align:center;
+  color:var(--muted);
+  font-size:.9rem;
+  margin-bottom:12px;
+}
+
+.modalbox input{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  background:#0b121b;
+  color:var(--text);
+  font-weight:900;
+  text-align:center;
+  margin-bottom:10px;
+  border:1px solid rgba(255,255,255,.12);
+}
+
+.modalbox button{
+  width:100%;
+  border:none;
+  border-radius:14px;
+  padding:14px;
+  font-weight:1000;
+  background:var(--btn2);
+  color:var(--text);
+  margin-bottom:8px;
+}
+
+.modalbox .primary{background:var(--accent)}
+.modalbox .danger{background:var(--danger)}
+
+.color-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.color-swatch{
+  height:44px;
+  border-radius:12px;
+  cursor:pointer;
+  border:2px solid transparent;
+}
+
+.color-swatch.selected{
+  outline:3px solid white;
+  outline-offset:2px;
+}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
-    <header class="app-chrome">
-      <div class="brand">
-        <span class="brand-icon" aria-hidden="true"><i class="bi bi-bowl-hot"></i></span>
-        <div class="brand-meta">
-          <span class="brand-title">Rice Bowl Planner</span>
-          <span class="brand-sub">Plan • Prep • Serve • Report</span>
-        </div>
-      </div>
-      <div class="header-actions"></div>
-    </header>
 
-    <div class="layout">
-      <nav class="top-nav" id="sideNav">
-        <button class="nav-link active" data-tab="quick"><i class="bi bi-gear" aria-hidden="true"></i><span>Quick-Plan</span></button>
-        <button class="nav-link" data-tab="prep"><i class="bi bi-egg-fried" aria-hidden="true"></i><span>Prep</span></button>
-        <button class="nav-link" data-tab="service"><i class="bi bi-people" aria-hidden="true"></i><span>Service</span></button>
-        <button class="nav-link" data-tab="cost"><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>Profit</span></button>
-        <button class="nav-link" data-tab="after"><i class="bi bi-journal-text" aria-hidden="true"></i><span>After</span></button>
-        <button class="nav-link" data-tab="plan"><i class="bi bi-truck" aria-hidden="true"></i><span>Business Plan</span></button>
-        <hr>
-        <button class="nav-link" id="recipeModalLink">Recipes</button>
-        <button class="nav-link" id="downloadPrices">Download CSV</button>
-        <button class="nav-link" id="uploadPrices">Upload CSV</button>
-      </nav>
+<header>HAND & FOOT</header>
 
-      <main class="content">
-        <div id="tab-quick" class="tab active">
-          <section class="card hero-card">
-            <h2><i class="bi bi-gear" aria-hidden="true"></i><span>Quick-Plan</span></h2>
-            <ul class="feature-list">
-              <li>Open a preset and the plan fills in instantly.</li>
-              <li>Shopping, prep, staffing, and load-out auto-generate.</li>
-              <li>Export packets or sync to service with one click.</li>
-            </ul>
-          </section>
+<main>
 
-          <section class="card">
-            <h3>Templates</h3>
-            <div class="button-group">
-              <button class="secondary" type="button" onclick="PL.presetSolo()">Lunch Pop-Up</button>
-              <button class="secondary" type="button" onclick="PL.presetCrew()">Festival Crew</button>
-              <button class="secondary" type="button" onclick="PL.presetMulti()">Multi-Crew Weekend</button>
-            </div>
-          </section>
+<div class="topbar">
+  <button class="primary" onclick="addTeam()">+ Team</button>
+  <div class="round" id="roundLabel"></div>
+</div>
 
-          <section class="card" id="importCard">
-            <h3>Prep Sync</h3>
-            <div class="muted" id="importMsg">Looking for export…</div>
-            <div class="button-group">
-              <button class="secondary" type="button" onclick="PL.refreshImport()">Refresh</button>
-              <button class="secondary" type="button" onclick="PL.applyImported()">Apply</button>
-            </div>
-          </section>
+<div class="list" id="teams"></div>
 
-          <section class="card">
-            <h3>Forecast</h3>
-            <div class="grid">
-              <div><label for="pl_price">Price per bowl ($)</label><input id="pl_price" type="number" step="0.01" value="12"></div>
-              <div><label for="pl_foodCost">Food cost per bowl ($)</label><input id="pl_foodCost" type="number" step="0.01" value="2.11"></div>
-              <div><label for="pl_packCost">Packaging per bowl ($)</label><input id="pl_packCost" type="number" step="0.01" value="0.60"></div>
-              <div><label for="pl_activeMonths">Active months / year</label><input id="pl_activeMonths" type="number" step="1" value="8" min="1" max="12"></div>
-            </div>
-            <div class="grid-2">
-              <div><label for="pl_csvName">CSV filename</label><input id="pl_csvName" type="text" value="scale_staffing_summary.csv"></div>
-            </div>
-          </section>
+<div class="controls">
+  <button onclick="resetRound()">Reset Round</button>
+  <button class="end" onclick="endRound()">End Round</button>
+</div>
 
-          <section class="card">
-            <h3>Fixed Costs</h3>
-            <div class="grid-3">
-              <div><label for="fx_commissary">Commissary ($/mo)</label><input id="fx_commissary" type="number" step="1" value="0"></div>
-              <div><label for="fx_insurance">Insurance ($/mo)</label><input id="fx_insurance" type="number" step="1" value="150"></div>
-              <div><label for="fx_fuel">Fuel &amp; propane ($/mo)</label><input id="fx_fuel" type="number" step="1" value="250"></div>
-              <div><label for="fx_note">Loan / trailer ($/mo)</label><input id="fx_note" type="number" step="1" value="0"></div>
-              <div><label for="fx_permits">Permits ($/mo)</label><input id="fx_permits" type="number" step="1" value="100"></div>
-              <div><label for="fx_misc">Supplies / upkeep ($/mo)</label><input id="fx_misc" type="number" step="1" value="125"></div>
-            </div>
-          </section>
+</main>
 
-          <section class="card">
-            <h3>Event Types</h3>
-            <div class="badge">Major Festival</div>
-            <div class="grid-4">
-              <div><label for="fest_events">Events / year</label><input id="fest_events" type="number" step="1" value="12"></div>
-              <div><label for="fest_bowls">Bowls / event</label><input id="fest_bowls" type="number" step="1" value="350"></div>
-              <div><label for="fest_fee">Event fee (flat $)</label><input id="fest_fee" type="number" step="1" value="200"></div>
-              <div><label for="fest_ops">Per-event ops ($)</label><input id="fest_ops" type="number" step="1" value="75"></div>
-            </div>
-            <div class="grid-4">
-              <div><label for="fest_staff">Staff count</label><input id="fest_staff" type="number" step="1" value="3"></div>
-              <div><label for="fest_hrs">Service hours</label><input id="fest_hrs" type="number" step="0.5" value="8"></div>
-              <div><label for="fest_prep">Prep hours</label><input id="fest_prep" type="number" step="0.5" value="2"></div>
-              <div><label for="fest_wage">Wage ($/hr)</label><input id="fest_wage" type="number" step="0.5" value="15"></div>
-            </div>
-            <div class="grid-2">
-              <div><label for="fest_lead">Crew lead bonus ($)</label><input id="fest_lead" type="number" step="1" value="25"></div>
-            </div>
-
-            <div class="badge">Community Event</div>
-            <div class="grid-4">
-              <div><label for="com_events">Events / year</label><input id="com_events" type="number" step="1" value="12"></div>
-              <div><label for="com_bowls">Bowls / event</label><input id="com_bowls" type="number" step="1" value="200"></div>
-              <div><label for="com_fee">Event fee (flat $)</label><input id="com_fee" type="number" step="1" value="100"></div>
-              <div><label for="com_ops">Per-event ops ($)</label><input id="com_ops" type="number" step="1" value="50"></div>
-            </div>
-            <div class="grid-4">
-              <div><label for="com_staff">Staff count</label><input id="com_staff" type="number" step="1" value="2"></div>
-              <div><label for="com_hrs">Service hours</label><input id="com_hrs" type="number" step="0.5" value="6"></div>
-              <div><label for="com_prep">Prep hours</label><input id="com_prep" type="number" step="0.5" value="1"></div>
-              <div><label for="com_wage">Wage ($/hr)</label><input id="com_wage" type="number" step="0.5" value="15"></div>
-            </div>
-            <div class="grid-2">
-              <div><label for="com_lead">Crew lead bonus ($)</label><input id="com_lead" type="number" step="1" value="20"></div>
-            </div>
-
-            <div class="badge">Catering</div>
-            <div class="grid-4">
-              <div><label for="cat_events">Events / year</label><input id="cat_events" type="number" step="1" value="7"></div>
-              <div><label for="cat_bowls">Bowls / event</label><input id="cat_bowls" type="number" step="1" value="125"></div>
-              <div><label for="cat_fee">Event fee (flat $)</label><input id="cat_fee" type="number" step="1" value="0"></div>
-              <div><label for="cat_ops">Per-event ops ($)</label><input id="cat_ops" type="number" step="1" value="35"></div>
-            </div>
-            <div class="grid-4">
-              <div><label for="cat_staff">Staff count</label><input id="cat_staff" type="number" step="1" value="2"></div>
-              <div><label for="cat_hrs">Service hours</label><input id="cat_hrs" type="number" step="0.5" value="4"></div>
-              <div><label for="cat_prep">Prep hours</label><input id="cat_prep" type="number" step="0.5" value="1"></div>
-              <div><label for="cat_wage">Wage ($/hr)</label><input id="cat_wage" type="number" step="0.5" value="15"></div>
-            </div>
-            <div class="grid-2">
-              <div><label for="cat_lead">Crew lead bonus ($)</label><input id="cat_lead" type="number" step="1" value="15"></div>
-            </div>
-          </section>
-
-          <section class="card">
-            <h3>Drinks</h3>
-            <div class="grid-4">
-              <div>
-                <label for="drink_share_pct">% of bowls with drink</label>
-                <input id="drink_share_pct" type="number" step="1" value="45" min="0" max="100">
-              </div>
-              <div>
-                <label for="drink_price">Avg drink price ($)</label>
-                <input id="drink_price" type="number" step="0.05" value="3.00">
-              </div>
-              <div>
-                <label for="drink_cost">Avg drink cost ($)</label>
-                <input id="drink_cost" type="number" step="0.05" value="0.25">
-              </div>
-              <div>
-                <label for="drink_round_to">Round drinks to nearest</label>
-                <input id="drink_round_to" type="number" step="1" value="10" min="1">
-              </div>
-            </div>
-            <div class="button-group">
-              <button class="primary" type="button" onclick="PL.calc()">Calculate</button>
-              <button class="secondary" type="button" onclick="PL.exportCSV()">CSV</button>
-              <button class="secondary" type="button" onclick="window.print()">Print</button>
-            </div>
-          </section>
-        </div>
-
-        <div id="tab-prep" class="tab">
-          <section class="card hero-card">
-            <h2><i class="bi bi-egg-fried" aria-hidden="true"></i><span>Prep</span></h2>
-            <ul class="feature-list">
-              <li>QR-ready batches keep teams in lockstep.</li>
-              <li>Scaling tracks the menu mix you set.</li>
-              <li>Labels, timers, and costing stay synced.</li>
-            </ul>
-            <div class="button-group">
-              <button class="secondary" type="button" onclick="toggleModal('prepSettingsModal', true)">Edit Prep Inputs</button>
-            </div>
-          </section>
-
-          <section class="card">
-            <h3>Shopping &amp; Batch Totals</h3>
-            <div id="summary" class="muted">Add menu items above; quantities are bowls to prep.</div>
-            <div class="table-wrap"><table id="table"></table></div>
-            <div class="button-group">
-              <button class="secondary" type="button" onclick="MB.exportCSV()">CSV</button>
-              <button class="secondary" type="button" onclick="window.print()">Print</button>
-            </div>
-          </section>
-
-          <section class="card">
-            <h3>Cost Snapshot</h3>
-            <div class="table-wrap"><table id="costs"></table></div>
-          </section>
-
-          <section class="card">
-            <h3>Price Sheet</h3>
-            <div class="button-group">
-              <button class="secondary" type="button" id="priceDownload">Download Current CSV</button>
-              <button class="secondary" type="button" id="priceUploadBtn">Upload CSV</button>
-              <input type="file" id="priceFile" accept=".csv" hidden>
-            </div>
-            <div class="muted">Export a backup before uploading changes.</div>
-          </section>
-
-          <section class="card">
-            <h3>Prep Library</h3>
-            <div id="prepSummary" class="prep-summary muted">Loading prep library…</div>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Sauces</h3>
-              <button class="secondary small" type="button" data-print-section="prepSauceList">Print</button>
-            </div>
-            <div id="prepSauceList" class="prep-grid"></div>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Signature Bowls</h3>
-              <button class="secondary small" type="button" data-print-section="prepRecipeList">Print</button>
-            </div>
-            <div id="prepRecipeList" class="prep-grid"></div>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Corn Salsa</h3>
-              <button class="secondary small" type="button" data-print-section="prepSalsaList">Print</button>
-            </div>
-            <div id="prepSalsaList" class="prep-grid"></div>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Protein Flow</h3>
-              <button class="secondary small" type="button" data-print-section="prepMeatList">Print</button>
-            </div>
-            <div id="prepMeatList" class="prep-grid"></div>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Pickles &amp; Garnish</h3>
-              <button class="secondary small" type="button" data-print-section="prepPickleList">Print</button>
-            </div>
-            <div id="prepPickleList" class="prep-grid"></div>
-          </section>
-        </div>
-
-        <div id="tab-service" class="tab">
-          <section class="card hero-card">
-            <h2><i class="bi bi-people" aria-hidden="true"></i><span>Service</span></h2>
-            <ul class="feature-list">
-              <li>Setup → service → close-down stays in one big-tap list.</li>
-              <li>Refill cues and crew view work offline.</li>
-              <li>Tip log is ready for quick splits.</li>
-            </ul>
-          </section>
-
-          <section class="card">
-            <h3>Run-of-Show</h3>
-            <div id="timeSummary" class="time-summary">
-              <div class="muted">Loading checklist…</div>
-            </div>
-            <div class="button-group">
-              <button class="secondary" type="button" id="timeResetBtn">Reset Checklist</button>
-            </div>
-            <div id="timeChecklist" class="time-checklist"></div>
-          </section>
-
-          <section class="card">
-            <h3>Refill Cues</h3>
-            <p class="muted">Live meters are in progress. Track batches manually for now.</p>
-          </section>
-
-          <section class="card">
-            <h3>Tip Log</h3>
-            <p class="muted">Log tips and share the crew link. POS importers land next.</p>
-          </section>
-        </div>
-
-        <div id="tab-cost" class="tab">
-          <section class="card hero-card">
-            <h2><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>Profit</span></h2>
-            <ul class="feature-list">
-              <li>Instant margin comparisons before you roll out.</li>
-              <li>Labor assumptions update with each recap.</li>
-              <li>Export tables for quick sharing.</li>
-            </ul>
-          </section>
-
-          <section class="card">
-            <h3>Topline KPIs</h3>
-            <div class="kpi">
-              <div class="box"><div class="label">Events / Year</div><div id="kpi_events" class="val">—</div></div>
-              <div class="box"><div class="label">Bowls / Year</div><div id="kpi_bowls" class="val">—</div></div>
-              <div class="box"><div class="label">Revenue / Year</div><div id="kpi_rev" class="val">—</div></div>
-              <div class="box"><div class="label">Net Profit / Year</div><div id="kpi_net" class="val">—</div></div>
-            </div>
-          </section>
-
-          <section class="card">
-            <h3>Per-Event Economics</h3>
-            <div class="table-wrap"><table id="perEventTbl"></table></div>
-          </section>
-
-          <section class="card">
-            <h3>Annual Projection</h3>
-            <div class="table-wrap"><table id="annualTbl"></table></div>
-            <div class="button-group">
-              <button class="secondary" type="button" onclick="PL.calc()">Recalculate</button>
-              <button class="secondary" type="button" onclick="PL.exportCSV()">CSV</button>
-              <button class="secondary" type="button" onclick="window.print()">Print</button>
-            </div>
-          </section>
-        </div>
-
-        <div id="tab-after" class="tab">
-          <section class="card hero-card">
-            <h2><i class="bi bi-journal-text" aria-hidden="true"></i><span>After</span></h2>
-            <ul class="feature-list">
-              <li>Summaries update as soon as prep + recap are saved.</li>
-              <li>Restock pulls directly from the latest shopping run.</li>
-              <li>Export a PDF packet or CSV for archives.</li>
-            </ul>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Auto Summary</h3>
-              <button class="secondary small" type="button" onclick="AfterBoard.refresh()">Refresh</button>
-            </div>
-            <div id="afterSummary" class="after-summary">
-              <div class="muted">Run a prep + quick-plan calculation to populate the summary.</div>
-            </div>
-          </section>
-
-          <section class="card">
-            <h3>Actuals</h3>
-            <form id="afterActualForm" class="after-form">
-              <div class="grid-3">
-                <div>
-                  <label for="after_actualBowls">Bowls sold</label>
-                  <input id="after_actualBowls" name="bowls" type="number" min="0" step="1" placeholder="118">
-                </div>
-                <div>
-                  <label for="after_actualHours">Service duration (hrs)</label>
-                  <input id="after_actualHours" name="hours" type="number" min="0" step="0.1" placeholder="2.75">
-                </div>
-                <div>
-                  <label for="after_actualTips">Tips ($)</label>
-                  <input id="after_actualTips" name="tips" type="number" min="0" step="0.01" placeholder="145">
-                </div>
-              </div>
-              <div class="grid-2">
-                <div>
-                  <label for="after_actualLabor">Labor hours</label>
-                  <input id="after_actualLabor" name="labor" type="number" min="0" step="0.1" placeholder="11.5">
-                </div>
-                <div>
-                  <label for="after_actualExpenses">Extra expenses ($)</label>
-                  <input id="after_actualExpenses" name="expenses" type="number" min="0" step="0.01" placeholder="45">
-                </div>
-              </div>
-              <label for="after_actualNotes">Notes</label>
-              <textarea id="after_actualNotes" name="notes" rows="3" placeholder="Sold out of Caribbean by 7:45pm. Need more pineapple prep."></textarea>
-              <div class="button-group">
-                <button class="primary" type="submit">Save Recap</button>
-                <span class="muted" id="afterSaveStatus">Not saved</span>
-              </div>
-            </form>
-          </section>
-
-          <section class="card">
-            <div class="section-top">
-              <h3>Restock</h3>
-              <button class="secondary small" type="button" onclick="AfterBoard.refreshRestock()">Refresh</button>
-            </div>
-            <div id="afterRestockList" class="table-wrap">
-              <div class="muted">Plan an event or prep batch first to generate restock targets.</div>
-            </div>
-          </section>
-
-          <section class="card">
-            <h3>Reports</h3>
-            <p class="muted">Download a recap PDF or export a CSV for your records.</p>
-            <div class="button-group">
-              <button class="secondary" type="button" onclick="AfterBoard.downloadReport()">Recap PDF</button>
-              <button class="secondary" type="button" onclick="AfterBoard.exportCSV()">Recap CSV</button>
-            </div>
-            <div class="muted" id="afterReportMsg">CSV export uses the saved recap plus current planner assumptions.</div>
-          </section>
-        </div>
-
-        <div id="tab-plan" class="tab">
-          <div class="plan-app">
-            <h1 class="plan-title"><i class="bi bi-truck" aria-hidden="true"></i> Food Truck + Nonprofit — Master Plan</h1>
-            <p class="plan-sub">Context locked: Household net ≈ $100k • Year-1 truck net target ~$30–35k • Launch fund $50k • Mission: support military-connected youth.</p>
-
-            <div class="plan-tab-bar plan-frost">
-              <button class="plan-tab-btn active" type="button" data-plan-tab="plan-overview"><i class="bi bi-stars" aria-hidden="true"></i> Overview</button>
-              <button class="plan-tab-btn" type="button" data-plan-tab="plan-roadmap"><i class="bi bi-map" aria-hidden="true"></i> 3–5 Year Roadmap</button>
-              <button class="plan-tab-btn" type="button" data-plan-tab="plan-compare"><i class="bi bi-balance-scale" aria-hidden="true"></i> Decision Comparison</button>
-              <button class="plan-tab-btn" type="button" data-plan-tab="plan-finance"><i class="bi bi-graph-up" aria-hidden="true"></i> Financial Snapshot</button>
-              <button class="plan-tab-btn" type="button" data-plan-tab="plan-year1"><i class="bi bi-calculator" aria-hidden="true"></i> Year-1 Model</button>
-              <button class="plan-tab-btn" type="button" data-plan-tab="plan-nonprofit"><i class="bi bi-bank" aria-hidden="true"></i> Nonprofit Blueprint</button>
-              <button class="plan-tab-btn" type="button" data-plan-tab="plan-next"><i class="bi bi-check2-circle" aria-hidden="true"></i> Greenlight &amp; 12-Month Plan</button>
-            </div>
-
-            <div class="plan-actions">
-              <button class="plan-btn plan-btn--accent" type="button" data-plan-print><i class="bi bi-printer" aria-hidden="true"></i> Print / Save PDF</button>
-              <button class="plan-btn plan-btn--glass" type="button" data-plan-onepager><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> One-Sheet PDF</button>
-              <button class="plan-btn plan-btn--glass" type="button" id="plan-copyLink"><i class="bi bi-link-45deg" aria-hidden="true"></i> Copy Link to This Tab</button>
-            </div>
-
-            <section id="plan-overview" class="plan-panel active">
-              <div class="plan-card">
-                <h2><i class="bi bi-stars" aria-hidden="true"></i> TL;DR</h2>
-                <div class="plan-kpis">
-                <div class="plan-kpi"><div class="plan-kpi-title">Household Net (Year-1)</div><div class="plan-kpi-value plan-mono">≈ $100,000</div></div>
-                <div class="plan-kpi"><div class="plan-kpi-title">Truck Net Target</div><div class="plan-kpi-value plan-mono">$30–35k</div></div>
-                <div class="plan-kpi"><div class="plan-kpi-title">Launch Capital Ready</div><div class="plan-kpi-value plan-mono">$50k trailer fund</div></div>
-                <div class="plan-kpi"><div class="plan-kpi-title">Mission</div><div class="plan-kpi-value">Every bowl → Youth programs</div></div>
-                </div>
-                <p class="plan-small">Household net stays near target by combining steady income streams with conservative truck profits. Long-term reserves remain invested to keep compounding.</p>
-                <p class="plan-small"><b>Funding Strategy:</b> Trailer + launch budget ≈ <b>$50k</b>, funded via <b>savings and/or small business equipment loan</b> per <b>LPL Financial</b> guidance; aim to launch debt-efficiently while preserving long-term compounding.</p>
-                <p class="plan-small"><b>Employment Strategy:</b> Maintain current job as the base plan. <b>Contingency:</b> if a government shutdown materially impacts pay, pivot to full-time truck within 30–45 days.</p>
-              </div>
-            </section>
-
-            <section id="plan-roadmap" class="plan-panel">
-              <div class="plan-grid plan-grid--two">
-                <div class="plan-card">
-                  <h2><i class="bi bi-flag" aria-hidden="true"></i> 3-Year Roadmap</h2>
-                  <div class="plan-caption">Year 1 — Foundation/Proof • Year 2 — Launch • Year 3 — Optimize</div>
-                  <table class="plan-table">
-                    <tr><th>Year</th><th>Focus</th><th>Milestones</th></tr>
-                    <tr>
-                      <td><b>1</b></td>
-                      <td>Foundation &amp; Proof</td>
-                      <td>Menu lock (BBQ/Caribbean/Thai/Gyro/Buffalo) • 8–12 paid pop-ups (≥$1.5–2k/day gross) • Prime cost ≤60% • LLC/permits/commissary • Brand kit/site • <b>Fund $50k trailer</b></td>
-                    </tr>
-                    <tr>
-                      <td><b>2</b></td>
-                      <td>Launch &amp; Ops</td>
-                      <td>80–120 service days • Net ~$30–35k • SOPs/vendor list • Corporate lunches &amp; Guard events • Wrap/signage/uniforms</td>
-                    </tr>
-                    <tr>
-                      <td><b>3</b></td>
-                      <td>Optimize &amp; Grow</td>
-                      <td>Net ~$40–50k • Add catering • Batch sauces/SKU simplification • Seasonal specials • Annual impact report</td>
-                    </tr>
-                  </table>
-                </div>
-                <div class="plan-card">
-                  <h2><i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Years 4–5 (Scale)</h2>
-                  <ul class="plan-list">
-                    <li>🚚 Second unit / satellite trailer</li>
-                    <li>🧴 CPG: bottled sauces / DIY kits</li>
-                    <li>🤝 Venue partnerships (breweries, food halls)</li>
-                    <li>🏛️ Nonprofit expansion &amp; statewide partners</li>
-                    <li>📣 Annual Food Truck Rally for Military Kids</li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-
-            <section id="plan-compare" class="plan-panel">
-              <div class="plan-card">
-                <h2><i class="bi bi-scale" aria-hidden="true"></i> Current Job vs Food-Truck Path (with Funding Options)</h2>
-                <table class="plan-table">
-                  <tr><th>Category</th><th>Stay in Job (Primary Plan)</th><th>Launch Truck + Nonprofit (Contingency)</th></tr>
-                  <tr><td>Income Stability</td><td>✅ W-2 + benefits</td><td class="plan-warn">Seasonal &amp; variable</td></tr>
-                  <tr><td>Annual Household Net</td><td class="plan-mono">$97k–$105k (W-2 + part-time truck)</td><td class="plan-mono">$100k–$110k (W-2 + full-time truck)</td></tr>
-                  <tr><td>Funding Method</td><td colspan="2">Savings and/or SBA/bank equipment loan (~<b>$50k</b>) per <b>LPL</b> guidance; hybrid acceptable.</td></tr>
-                  <tr><td>Seasonal Time Demand</td><td class="plan-mono">1 weekend / month<br>+ 1–2 intensive weeks (summer)</td><td class="plan-mono">2–3 service days / week<br>+ prep/admin 1–2 days / week</td></tr>
-                  <tr><td>Contingency Trigger</td><td>—</td><td>Government shutdown threatens income → pivot to full-time truck in 30–45 days</td></tr>
-                  <tr><td>Mission Impact</td><td>Indirect</td><td>Direct: every bowl funds youth programs</td></tr>
-                  <tr><td>Growth Potential</td><td>Modest raises</td><td>High: catering, second unit, CPG</td></tr>
-                  <tr><td>Asset / Exit Value</td><td>None</td><td>Truck + brand + goodwill</td></tr>
-                </table>
-              </div>
-            </section>
-
-            <section id="plan-finance" class="plan-panel">
-              <div class="plan-grid plan-grid--two">
-                <div class="plan-card">
-                  <h2><i class="bi bi-cash-stack" aria-hidden="true"></i> Household Snapshot</h2>
-                  <table class="plan-table">
-                    <tr><td>W-2 income (net)</td><td class="plan-mono">$64,800 / yr ($5,400/mo)</td></tr>
-                    <tr><td>Truck Year-1 Net (target)</td><td class="plan-mono">$30,000 – $35,000</td></tr>
-                    <tr><td><b>Total household net</b></td><td class="plan-mono"><b>≈ $100,000</b></td></tr>
-                    <tr><td>Lean spend (60% shift)</td><td class="plan-mono">$54,000 – $60,000</td></tr>
-                    <tr><td>Health + SE tax + reinvest</td><td class="plan-mono">$18,000 – $20,000</td></tr>
-                    <tr><td><b>Likely surplus (Year-1)</b></td><td class="plan-mono"><b>≈ $20,000+</b></td></tr>
-                  </table>
-                </div>
-                <div class="plan-card">
-                  <h2><i class="bi bi-piggy-bank" aria-hidden="true"></i> Operating Runway &amp; Reserves</h2>
-                  <table class="plan-table">
-                    <tr><td>Launch capital earmarked</td><td class="plan-mono">$50,000</td></tr>
-                    <tr><td>Household reserve</td><td class="plan-mono">$25,000 – $30,000</td></tr>
-                    <tr><td>Working capital cushion</td><td class="plan-mono">$8,000</td></tr>
-                    <tr><td>Seasonal contingency</td><td class="plan-mono">$12,000</td></tr>
-                  </table>
-                  <p class="plan-small">Maintain the reserve stack to absorb slow weeks while the truck scales up.</p>
-                </div>
-              </div>
-
-              <div class="plan-grid plan-grid--two">
-                <div class="plan-card">
-                  <h2><i class="bi bi-bank" aria-hidden="true"></i> 💵 Funding Strategy (per LPL Financial)</h2>
-                  <table class="plan-table">
-                    <tr><th>Option</th><th>Source</th><th>Amount</th><th>Notes</th></tr>
-                    <tr>
-                      <td><b>Option A — Savings Draw</b></td>
-                      <td>LPL-managed taxable/cash</td>
-                      <td class="plan-mono">$50,000</td>
-                      <td>No interest; reduces compounding base slightly.</td>
-                    </tr>
-                    <tr>
-                      <td><b>Option B — Equipment Loan</b></td>
-                      <td>SBA/Bank (collateral: trailer)</td>
-                      <td class="plan-mono">$50,000</td>
-                      <td>Preserves investments; deductible interest; monthly payment.</td>
-                    </tr>
-                    <tr>
-                      <td><b>Hybrid</b></td>
-                      <td>$25k savings + $25k loan</td>
-                      <td class="plan-mono">$50,000</td>
-                      <td>Balanced liquidity; keeps ≥$25k household reserve.</td>
-                    </tr>
-                  </table>
-                  <p class="plan-small">Decision to finalize with advisor; objective is debt-efficient launch while preserving long-term growth.</p>
-                </div>
-
-                <div class="plan-card">
-                  <h2><i class="bi bi-tools" aria-hidden="true"></i> Trailer Budget Target</h2>
-                  <table class="plan-table">
-                    <tr><td>Trailer + buildout</td><td class="plan-mono"><b>$50,000</b></td></tr>
-                    <tr><td>Wrap/signage (optional)</td><td class="plan-mono">$2,500–$5,000</td></tr>
-                    <tr><td>Permits/insurance</td><td class="plan-mono">$300/mo</td></tr>
-                    <tr><td>Initial inventory + disposables</td><td class="plan-mono">$2,000–$3,500</td></tr>
-                  </table>
-                  <p class="plan-small">Wrap/signage can be phased post-launch if needed to preserve reserves.</p>
-                </div>
-              </div>
-            </section>
-
-            <section id="plan-year1" class="plan-panel">
-              <div class="plan-card">
-                <h2><i class="bi bi-calculator" aria-hidden="true"></i> Year-1 Operating Model (Conservative)</h2>
-                <table class="plan-table">
-                  <tr><th>Driver</th><th>Assumption</th><th class="plan-mono">Math</th></tr>
-                  <tr><td>Operating season</td><td>~7 months (May–Nov)</td><td class="plan-mono">≈ 30 weeks</td></tr>
-                  <tr><td>Service days</td><td>3 / week</td><td class="plan-mono">≈ 90 days</td></tr>
-                  <tr><td>Avg gross / day</td><td>$1,400</td><td class="plan-mono">$126,000 gross</td></tr>
-                  <tr><td>COGS</td><td>30%</td><td class="plan-mono">$37,800</td></tr>
-                  <tr><td>Labor</td><td>~20%</td><td class="plan-mono">$25,000</td></tr>
-                  <tr><td>Ops/permits/overhead</td><td>~25%</td><td class="plan-mono">$31,000</td></tr>
-                  <tr><td><b>Net income (Year-1)</b></td><td><b>Conservative</b></td><td class="plan-mono"><b>$32,000</b></td></tr>
-                </table>
-                <p class="plan-small">Upside: $40–45k net if cadence and throughput improve by mid-season.</p>
-              </div>
-            </section>
-
-            <section id="plan-nonprofit" class="plan-panel">
-              <div class="plan-grid plan-grid--two">
-                <div class="plan-card">
-                  <h2><i class="bi bi-bank" aria-hidden="true"></i> City Serve Partnership — Mission Alignment</h2>
-                  <p><b>Purpose:</b> Operate Freedom Roots programming under City Serve as the fiscal umbrella so dollars flow immediately to military-connected youth.</p>
-                  <p><b>Shared heartbeat:</b> Every bowl funds camp tuition, resilience workshops, and family support experiences. City Serve earmarks contributions and reports back on scholarships granted.</p>
-                  <p><b>Programs powered:</b> Lemonade Boss kits, Bowl Builders family nights, weekend mini-camps, micro-grants, and Purple Star support — all delivered with City Serve stewardship.</p>
-                </div>
-                <div class="plan-card">
-                  <h2><i class="bi bi-gear" aria-hidden="true"></i> Structure &amp; Compliance</h2>
-                  <ul class="plan-list">
-                    <li>🏷️ City Serve holds funds in a dedicated sub-account; Freedom Roots operates as a branded initiative.</li>
-                    <li>👥 Advisory circle (Guard-connected) drafts program plans, while City Serve provides board oversight and compliance.</li>
-                    <li>🧾 Quarterly impact packets: bowls sold → dollars forwarded → youth served; annual narrative recap for City Serve donors.</li>
-                    <li>📅 <b>Yr1:</b> finalize fiscal sponsorship and launch camp scholarships • <b>Yr2:</b> expand youth programs $25–40k • <b>Yr3:</b> statewide rally and sponsor drive.</li>
-                  </ul>
-                </div>
-                <div class="plan-card">
-                  <h2><i class="bi bi-megaphone" aria-hidden="true"></i> Pitch Highlights for City Serve</h2>
-                  <ul class="plan-list">
-                    <li>🎯 <b>Mission fit:</b> “Every meal funds a moment” — City Serve channels grassroots food truck energy into direct youth impact.</li>
-                    <li>📊 <b>Ready metrics:</b> Projected $30–35k truck net with 10% pledged quarterly; transparent per-event reporting already built in the planner.</li>
-                    <li>🤝 <b>Shared operations:</b> Freedom Roots handles events and storytelling, City Serve manages donations, compliance, and camp vendor payments.</li>
-                    <li>🚀 <b>Ask:</b> Establish a Freedom Roots fund within City Serve, co-create impact language, and greenlight the first 20 camp scholarships for launch season.</li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-
-            <section id="plan-next" class="plan-panel">
-              <div class="plan-grid plan-grid--two">
-                <div class="plan-card">
-                  <h2><i class="bi bi-check2-circle" aria-hidden="true"></i> Greenlight Checklist</h2>
-                  <ul class="plan-list">
-                    <li>✅ 6-month household reserve: $25–30k</li>
-                    <li>✅ Startup funded: <b>$50k trailer</b> via savings and/or equipment loan</li>
-                    <li>✅ Steady base income maintained</li>
-                    <li>✅ Year-1 truck net plan: ≥ $30–35k with 80–120 service days</li>
-                    <li>🟡 Marketplace insurance selected</li>
-                    <li>🟡 Growth reinvestment plan finalized</li>
-                    <li>✅ Advisor alignment on investment strategy</li>
-                  </ul>
-                </div>
-                <div class="plan-card">
-                  <h2><i class="bi bi-calendar-check" aria-hidden="true"></i> 12-Month Action Plan</h2>
-                  <table class="plan-table">
-                    <tr><th>Quarter</th><th>Key Actions</th></tr>
-                    <tr><td><b>Q4 2025</b></td><td>Lock menu; 4–6 paid pop-ups; secure commissary; finalize trailer; confirm funding path with LPL.</td></tr>
-                    <tr><td><b>Q1 2026</b></td><td>Purchase trailer; permits &amp; insurance; soft-launch weekends; contingency readiness plan (shutdown pivot).</td></tr>
-                    <tr><td><b>Q2 2026</b></td><td>Full season start; aim $1.5–2k/day gross; prime cost ≤ 60%.</td></tr>
-                    <tr><td><b>Q3 2026</b></td><td>Add catering; publish mid-season wins; donor QR live on truck.</td></tr>
-                    <tr><td><b>Q4 2026</b></td><td>Impact mini-report; set 2027 pace; lock reinvestment strategy for taxes.</td></tr>
-                  </table>
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
-      </main>
-    </div>
+<!-- Team Modal -->
+<div class="modal" id="teamModal">
+  <div class="modalbox">
+    <h3>Team</h3>
+    <div class="hint" id="teamHint"></div>
+    <div class="color-grid" id="colorGrid"></div>
+    <input id="teamNameInput" placeholder="Team name">
+    <button class="primary" onclick="saveTeam()">Save</button>
+    <button class="danger" onclick="deleteTeam()">Delete Team</button>
+    <button onclick="closeModals()">Cancel</button>
   </div>
+</div>
 
-  <div class="modal" id="prepSettingsModal" aria-hidden="true">
-    <div class="modal-overlay" data-close="prepSettingsModal"></div>
-    <div class="modal-dialog">
-      <button class="modal-close" type="button" data-close="prepSettingsModal" aria-label="Close prep inputs">&times;</button>
-      <h2>Prep Inputs</h2>
-      <p class="muted">Tune menu mix, portions, yields, and cost assumptions. Changes save locally.</p>
-
-      <section class="modal-section">
-        <h3>Menu Mix</h3>
-        <div class="grid-2">
-          <div>
-            <label for="menuSelect">Recipe</label>
-            <select id="menuSelect"></select>
-          </div>
-          <div>
-            <label for="menuQty">Bowls to prep</label>
-            <input id="menuQty" type="number" value="25" min="1">
-          </div>
-        </div>
-        <div class="button-group">
-          <button class="primary" type="button" onclick="MB.addItem()">Add Recipe</button>
-          <button class="secondary" type="button" onclick="MB.clearItems()">Clear List</button>
-          <span class="badge" id="exportStatus">Not exported yet</span>
-        </div>
-        <div class="table-wrap mt">
-          <table id="itemsTable"></table>
-        </div>
-      </section>
-
-      <section class="modal-section">
-        <h3>Portions &amp; Yields</h3>
-        <div class="grid-3">
-          <div><label for="ps_rice_cups">Rice (cups cooked / bowl)</label><input id="ps_rice_cups" type="number" value="1.0" step="0.05"></div>
-          <div><label for="ps_slaw_oz">Slaw (oz / bowl)</label><input id="ps_slaw_oz" type="number" value="1.5" step="0.1"></div>
-          <div><label for="ps_onions_oz">Pickled onions (oz / bowl)</label><input id="ps_onions_oz" type="number" value="0.7" step="0.1"></div>
-          <div><label for="ps_carrot_oz">Julienne carrots (oz / bowl)</label><input id="ps_carrot_oz" type="number" value="0.8" step="0.1"></div>
-          <div><label for="ps_cuke_oz">Julienne cucumbers (oz / bowl)</label><input id="ps_cuke_oz" type="number" value="0.8" step="0.1"></div>
-          <div><label for="ps_herb_oz">Herbs (oz / bowl)</label><input id="ps_herb_oz" type="number" value="0.2" step="0.1"></div>
-          <div><label for="ps_pcarrot_oz">Buffalo carrots (oz / bowl)</label><input id="ps_pcarrot_oz" type="number" value="0.7" step="0.1"></div>
-          <div><label for="ps_celery_oz">Buffalo celery (oz / bowl)</label><input id="ps_celery_oz" type="number" value="0.8" step="0.1"></div>
-          <div><label for="ps_salsa_oz">Corn salsa (fl oz / bowl)</label><input id="ps_salsa_oz" type="number" value="2.0" step="0.1"></div>
-        </div>
-        <h4>Proteins</h4>
-        <div class="grid-3">
-          <div><label for="ps_chicken_oz">Chicken (cooked oz / bowl)</label><input id="ps_chicken_oz" type="number" value="4.0" step="0.1"></div>
-          <div><label for="ps_pork_oz">Pork (cooked oz / bowl)</label><input id="ps_pork_oz" type="number" value="4.0" step="0.1"></div>
-          <div><label for="ps_gyro_oz">Gyro (cooked oz / bowl)</label><input id="ps_gyro_oz" type="number" value="4.0" step="0.1"></div>
-        </div>
-        <h4>Yields</h4>
-        <div class="grid-3">
-          <div><label for="yield_chicken">Chicken yield</label><input id="yield_chicken" type="number" value="0.70" step="0.01"></div>
-          <div><label for="yield_pork">Pork yield</label><input id="yield_pork" type="number" value="0.60" step="0.01"></div>
-          <div><label for="yield_gyro">Gyro yield</label><input id="yield_gyro" type="number" value="0.75" step="0.01"></div>
-        </div>
-        <h4>Sauces</h4>
-        <div class="grid-3">
-          <div><label for="ps_bbq_oz">BBQ (oz / bowl)</label><input id="ps_bbq_oz" type="number" value="1.0" step="0.1"></div>
-          <div><label for="ps_green_oz">Peruvian green (oz / bowl)</label><input id="ps_green_oz" type="number" value="0.75" step="0.1"></div>
-          <div><label for="ps_toum_oz">Toum (oz / bowl)</label><input id="ps_toum_oz" type="number" value="0.75" step="0.1"></div>
-          <div><label for="ps_crema_oz">Crema (oz / bowl)</label><input id="ps_crema_oz" type="number" value="0.75" step="0.1"></div>
-          <div><label for="ps_peanut_oz">Thai peanut (oz / bowl)</label><input id="ps_peanut_oz" type="number" value="1.0" step="0.1"></div>
-          <div><label for="ps_buffalo_oz">Buffalo (oz / bowl)</label><input id="ps_buffalo_oz" type="number" value="1.0" step="0.1"></div>
-          <div><label for="ps_tzatziki_oz">Tzatziki (oz / bowl)</label><input id="ps_tzatziki_oz" type="number" value="1.0" step="0.1"></div>
-          <div><label for="ps_mojo_oz">Mojo mustard (oz / bowl)</label><input id="ps_mojo_oz" type="number" value="1.0" step="0.1"></div>
-        </div>
-        <h4>Rice Cooker</h4>
-        <div class="grid-2">
-          <div><label for="riceBatchCups">Rice cooker yield (cups cooked / batch)</label><input id="riceBatchCups" type="number" value="20" min="1"></div>
-        </div>
-      </section>
-
-      <section class="modal-section">
-        <h3>Cost Inputs</h3>
-        <div class="grid-3">
-          <div><label for="pricePerBowl">Price per bowl ($)</label><input id="pricePerBowl" type="number" value="12" step="0.01"></div>
-          <div><label for="costPack">Packaging ($/bowl)</label><input id="costPack" type="number" value="0.60" step="0.01"></div>
-          <div><label for="costChicken">Chicken ($/lb raw)</label><input id="costChicken" type="number" value="2.20" step="0.01"></div>
-          <div><label for="costPork">Pork ($/lb raw)</label><input id="costPork" type="number" value="2.48" step="0.01"></div>
-          <div><label for="costGyro">Gyro blend ($/lb raw)</label><input id="costGyro" type="number" value="3.20" step="0.01"></div>
-          <div><label for="costRice">Rice ($/lb dry)</label><input id="costRice" type="number" value="1.00" step="0.01"></div>
-          <div><label for="costSlaw">Slaw ($/lb)</label><input id="costSlaw" type="number" value="1.20" step="0.01"></div>
-          <div><label for="costCarrot">Carrots ($/lb)</label><input id="costCarrot" type="number" value="0.98" step="0.01"></div>
-          <div><label for="costCuke">Cucumbers ($/lb)</label><input id="costCuke" type="number" value="0.80" step="0.01"></div>
-          <div><label for="costCelery">Celery ($/lb)</label><input id="costCelery" type="number" value="0.95" step="0.01"></div>
-          <div><label for="costHerb">Herbs ($/lb)</label><input id="costHerb" type="number" value="8.00" step="0.01"></div>
-          <div><label for="costOnionQt">Pickled onion base ($/qt)</label><input id="costOnionQt" type="number" value="2.50" step="0.01"></div>
-          <div><label for="costPCarrotQt">Pickled carrot base ($/qt)</label><input id="costPCarrotQt" type="number" value="2.50" step="0.01"></div>
-          <div><label for="costBBQ">BBQ ($/gal)</label><input id="costBBQ" type="number" value="12.00" step="0.01"></div>
-          <div><label for="costGreen">Peruvian green ($/gal)</label><input id="costGreen" type="number" value="14.00" step="0.01"></div>
-          <div><label for="costToum">Toum ($/gal)</label><input id="costToum" type="number" value="22.00" step="0.01"></div>
-          <div><label for="costCrema">Crema ($/gal)</label><input id="costCrema" type="number" value="11.00" step="0.01"></div>
-          <div><label for="costBuffalo">Buffalo ($/gal)</label><input id="costBuffalo" type="number" value="16.00" step="0.01"></div>
-          <div><label for="costTzatziki">Tzatziki ($/gal)</label><input id="costTzatziki" type="number" value="20.00" step="0.01"></div>
-          <div><label for="costMojo">Mojo mustard ($/gal)</label><input id="costMojo" type="number" value="8.00" step="0.01"></div>
-          <div><label for="costPeanutLb">Peanut butter ($/lb)</label><input id="costPeanutLb" type="number" value="2.10" step="0.01"></div>
-          <div><label for="costSoyGal">Soy sauce ($/gal)</label><input id="costSoyGal" type="number" value="8.00" step="0.01"></div>
-          <div><label for="costCoconutCan">Coconut milk (13.5 oz can)</label><input id="costCoconutCan" type="number" value="1.60" step="0.01"></div>
-          <div><label for="costVinegarCup">Rice vinegar ($/cup)</label><input id="costVinegarCup" type="number" value="0.40" step="0.01"></div>
-          <div><label for="costSugarLb">Brown sugar ($/lb)</label><input id="costSugarLb" type="number" value="0.70" step="0.01"></div>
-          <div><label for="costCornCan">Corn (15 oz can)</label><input id="costCornCan" type="number" value="0.88" step="0.01"></div>
-          <div><label for="costPep">Bell peppers ($/each)</label><input id="costPep" type="number" value="0.70" step="0.01"></div>
-          <div><label for="costTom">Roma tomatoes ($/lb)</label><input id="costTom" type="number" value="1.80" step="0.01"></div>
-          <div><label for="costOnion">Red onions ($/lb)</label><input id="costOnion" type="number" value="0.90" step="0.01"></div>
-          <div><label for="costCil">Cilantro ($/bunch)</label><input id="costCil" type="number" value="0.60" step="0.01"></div>
-          <div><label for="costLimeJuice">Lime juice ($/cup)</label><input id="costLimeJuice" type="number" value="0.90" step="0.01"></div>
-          <div><label for="costSaltTbsp">Salt ($/Tbsp)</label><input id="costSaltTbsp" type="number" value="0.02" step="0.01"></div>
-        </div>
-      </section>
-    </div>
+<!-- Books Modal -->
+<div class="modal" id="booksModal">
+  <div class="modalbox">
+    <h3>Books</h3>
+    <div class="hint" id="booksHint"></div>
+    <button class="primary" onclick="addBook('clean')">Clean Book</button>
+    <button onclick="addBook('dirty')">Dirty Book</button>
+    <button onclick="addBook('seven')">Clean 7s</button>
+    <button onclick="closeModals()">Cancel</button>
   </div>
+</div>
 
-  <div class="modal" id="recipesModal" aria-hidden="true">
-    <div class="modal-overlay" data-close="recipesModal"></div>
-    <div class="modal-dialog recipe-manager">
-      <button class="modal-close" type="button" data-close="recipesModal" aria-label="Close recipes">&times;</button>
-      <h2>Recipes &amp; Components</h2>
-      <p class="muted">Edit bowls, sauces, and build steps. Changes save locally and sync instantly.</p>
-      <div class="recipe-manager-grid">
-        <aside class="recipe-sidebar">
-          <div class="sidebar-actions">
-            <input id="recipeSearch" type="search" placeholder="Search recipes">
-            <button class="secondary small" type="button" id="recipeAddBtn">New Recipe</button>
-          </div>
-          <div id="recipeNav" class="recipe-nav"></div>
-        </aside>
-        <div class="recipe-editor">
-          <form id="recipeForm" class="recipe-form">
-            <input type="hidden" id="recipeKey" value="auto-generated">
-            <div class="form-row">
-              <label for="recipeName">Recipe name</label>
-              <input id="recipeName" type="text" placeholder="Signature bowl name">
-            </div>
-            <div class="form-row">
-              <label for="recipeIcon">Icon (Bootstrap class)</label>
-              <input id="recipeIcon" type="text" placeholder="bi-fire">
-            </div>
-            <div class="form-row">
-              <label for="recipeProtein">Protein focus</label>
-              <select id="recipeProtein">
-                <option value="">—</option>
-                <option value="chicken">Chicken</option>
-                <option value="pork">Pork</option>
-                <option value="gyro">Gyro</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="recipeSauces">Sauces</label>
-              <div class="pill-select" id="recipeSauces"></div>
-            </div>
-            <div class="form-row">
-              <label for="recipeVeg">Vegetable components</label>
-              <div class="pill-select" id="recipeVeg"></div>
-            </div>
-            <div class="form-row">
-              <label><input type="checkbox" id="recipeSalsa"> Includes corn salsa</label>
-            </div>
-            <div class="form-row">
-              <label for="recipeComponents">Line components</label>
-              <textarea id="recipeComponents" rows="4" placeholder="Rice, Jerk chicken, Pickled onions…"></textarea>
-            </div>
-            <div class="form-row">
-              <div class="form-row-header">
-                <label>Line build steps</label>
-                <button class="secondary small" type="button" id="recipeStepAdd">Add Step</button>
-              </div>
-              <div id="recipeSteps" class="steps-list"></div>
-              <small class="muted">Example: “Base | Jasmine rice | 1 cup | Spread evenly”.</small>
-            </div>
-            <div class="button-group">
-              <button class="primary" type="submit" id="recipeSaveBtn">Save</button>
-              <button class="secondary" type="button" id="recipeDeleteBtn">Delete</button>
-            </div>
-          </form>
-          <div id="recipePreview" class="recipe-preview"></div>
-        </div>
-      </div>
-    </div>
+<!-- Cards Modal -->
+<div class="modal" id="cardsModal">
+  <div class="modalbox">
+    <h3>Cards</h3>
+    <div class="hint">Enter point totals</div>
+    <input id="playedInput" type="number" placeholder="Cards Played (+)">
+    <input id="leftInput" type="number" placeholder="Cards Left (−)">
+    <button class="primary" onclick="applyCards()">Apply</button>
+    <button onclick="closeModals()">Cancel</button>
   </div>
+</div>
 
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(err => {
-          console.warn('Service worker registration failed:', err);
-        });
-      });
-    }
-  </script>
+<script>
+const KEY="hf_minimal";
+const MAX_ROUNDS=4;
+
+const TEAM_COLORS=[
+  "#7FB03F",
+  "#FAC55A",
+  "#F37433",
+  "#C44004",
+  "#00563F"
+];
+
+let state=JSON.parse(localStorage.getItem(KEY))||{
+  round:1,
+  rules:{clean:500,dirty:300,seven:1500},
+  teams:[
+    {name:"Team 1",total:0,round:0,color:"#00563F"},
+    {name:"Team 2",total:0,round:0,color:"#7FB03F"}
+  ],
+  active:null
+};
+
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function score(t){return t.total+t.round}
+
+function render(){
+  roundLabel.textContent=`Round ${state.round} of ${MAX_ROUNDS}`;
+  teams.innerHTML="";
+  state.teams.forEach((t,i)=>{
+    const row=document.createElement("div");
+    row.className="team";
+    row.style.background=t.color;
+    row.innerHTML=`
+      <div class="name" onclick="openTeam(${i})">${t.name}</div>
+      <div class="score" onclick="openCards(${i})">${score(t)}</div>
+      <button class="books" onclick="openBooks(${i})">BOOKS</button>
+    `;
+    teams.appendChild(row);
+  });
+}
+
+function addTeam(){
+  const color=TEAM_COLORS[state.teams.length%TEAM_COLORS.length];
+  state.teams.push({name:`Team ${state.teams.length+1}`,total:0,round:0,color});
+  save();render();
+}
+
+function resetRound(){
+  state.teams.forEach(t=>t.round=0);
+  save();render();
+}
+
+function endRound(){
+  state.teams.forEach(t=>{t.total+=t.round;t.round=0});
+  if(state.round<MAX_ROUNDS){state.round++}
+  save();render();
+}
+
+/* Team modal */
+function openTeam(i){
+  state.active=i;
+  teamHint.textContent=state.teams[i].name;
+  teamNameInput.value=state.teams[i].name;
+  renderColorGrid();
+  teamModal.style.display="flex";
+}
+
+function saveTeam(){
+  state.teams[state.active].name=teamNameInput.value.trim()||"Team";
+  save();closeModals();render();
+}
+
+function deleteTeam(){
+  if(state.teams.length<=1)return;
+  state.teams.splice(state.active,1);
+  save();closeModals();render();
+}
+
+function renderColorGrid(){
+  colorGrid.innerHTML="";
+  TEAM_COLORS.forEach(c=>{
+    const s=document.createElement("div");
+    s.className="color-swatch"+(state.teams[state.active].color===c?" selected":"");
+    s.style.background=c;
+    s.onclick=()=>{state.teams[state.active].color=c;save();renderColorGrid();render()};
+    colorGrid.appendChild(s);
+  });
+}
+
+/* Books */
+function openBooks(i){
+  state.active=i;
+  booksHint.textContent=state.teams[i].name;
+  booksModal.style.display="flex";
+}
+function addBook(type){
+  state.teams[state.active].round+=state.rules[type];
+  save();closeModals();render();
+}
+
+/* Cards */
+function openCards(i){
+  state.active=i;
+  playedInput.value="";
+  leftInput.value="";
+  cardsModal.style.display="flex";
+}
+function applyCards(){
+  const p=+playedInput.value||0;
+  const l=+leftInput.value||0;
+  state.teams[state.active].round+=p-l;
+  save();closeModals();render();
+}
+
+function closeModals(){
+  teamModal.style.display="none";
+  booksModal.style.display="none";
+  cardsModal.style.display="none";
+}
+
+render();
+</script>
+
 </body>
 </html>
